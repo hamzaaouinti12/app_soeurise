@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 25mm 20mm; }
+  body { 
+      font-family: 'Times New Roman', Times, serif; 
+      color: #000; 
+      line-height: 1.6; 
+      font-size: 13pt; 
+      background: #fff;
+  }
+  .page-break { page-break-after: always; }
+  
+  /* Front page layout */
+  .header-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 11pt; }
+  .header-table td { border: 1px dotted #ccc; padding: 10px; vertical-align: middle; }
+  .header-middle { text-align: center; font-weight: bold; font-size: 10pt; line-height: 1.4; }
+  .header-right { text-align: right; direction: rtl; font-family: Arial, sans-serif; font-size: 10pt; line-height: 1.4; }
+  .doc-info { font-size: 10pt; margin-top: 10px; width: 100%; border-collapse: collapse; }
+  .doc-info td { border: none; padding: 2px 5px; }
+  
+  /* Titles and Content */
+  .title-section { text-align: center; margin-top: 50px; font-weight: bold; }
+  .title-section h1 { font-size: 20pt; margin-bottom: 20px; text-transform: uppercase; }
+  .title-section h2 { font-size: 15pt; margin-bottom: 40px; }
+  .title-section h3 { font-size: 18pt; margin: 50px 0; }
+  
+  .info-section { text-align: center; font-size: 15pt; font-weight: bold; margin-bottom: 50px; }
+  .info-section div { margin: 15px 0; }
+  
+  h2.section-title { 
+      color: #333; 
+      margin-top: 30px; 
+      border-bottom: 2px solid #555; 
+      padding-bottom: 5px; 
+      font-size: 18pt; 
+  }
+  h3.subsection-title { 
+      color: #444; 
+      margin-top: 25px; 
+      font-size: 15pt; 
+      text-decoration: underline; 
+  }
+  p { margin-bottom: 15px; text-align: justify; }
+  ul { margin-bottom: 20px; list-style-type: square; }
+  li { margin-bottom: 8px; }
+
+  /* CSS drawn ITBS Logos base structure */
+  .itbs-logo-container {
+      display: inline-flex;
+      align-items: center;
+      font-family: 'Century Gothic', 'Segoe UI', Tahoma, Verdana, sans-serif;
+      color: #333; 
+  }
+  .itbs-square {
+      width: 52px;
+      height: 58px;
+      border-bottom-right-radius: 16px; /* Rounded corner */
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+  }
+  .itbs-text-it {
+      color: white;
+      font-weight: bold;
+      font-size: 40px;
+      position: relative;
+      z-index: 2;
+      top: 2px;
+  }
+  .itbs-ribbon {
+      position: absolute;
+      top: -4px;
+      right: 8px; /* Ribbon on the right */
+      width: 12px;
+      height: 18px;
+      z-index: 3;
+  }
+  .itbs-ribbon::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      border-left: 6px solid;
+      border-right: 6px solid;
+      border-bottom: 6px solid transparent !important;
+  }
+  .itbs-text-business {
+      margin-left: 12px;
+      font-size: 16px;
+      line-height: 1.1;
+      text-align: left;
+      letter-spacing: 0.5px;
+  }
+  
+  /* Variant 1: Grey Box / Orange Ribbon (Top Left Logo) */
+  .itbs-grey .itbs-square {
+      background-color: #a4a5a8; 
+  }
+  .itbs-grey .itbs-ribbon {
+      background-color: #e57e4e; 
+  }
+  .itbs-grey .itbs-ribbon::after {
+      border-left-color: #e57e4e;
+      border-right-color: #e57e4e;
+  }
+
+  /* Variant 2: Orange Box / Grey Ribbon (Center Logo) */
+  .itbs-orange .itbs-square {
+      background-color: #df5827; 
+  }
+  .itbs-orange .itbs-ribbon {
+      background-color: #4d4f53; 
+  }
+  .itbs-orange .itbs-ribbon::after {
+      border-left-color: #4d4f53;
+      border-right-color: #4d4f53;
+  }
+  
+  .itbs-logo-large { transform: scale(1.4); transform-origin: center; margin: 40px 0; }
+  
+</style>
+</head>
+<body>
+
+<!-- PAGE 1 : Page de Garde -->
+<table class="header-table">
+  <tr>
+    <td style="width: 30%; text-align: center;">
+      <!-- CSS Logo ITBS : Variant GREY -->
+      <div class="itbs-logo-container itbs-grey">
+          <div class="itbs-square">
+              <div class="itbs-ribbon"></div>
+              <div class="itbs-text-it">it</div>
+          </div>
+          <div class="itbs-text-business">
+              <span style="font-weight: 300;">BUSI\\ESS</span><br>
+              <span style="font-weight: 300;">SCHOOL</span>
+          </div>
+      </div>
+    </td>
+    <td class="header-middle" style="width: 45%;">
+      ECOLE SUPÉRIEURE PRIVÉE<br>
+      DES TECHNOLOGIES D'INFORMATION<br>
+      ET DE MANAGEMENT DE NABEUL<br>
+      <div style="display: inline-block; background-color: #ddd; padding: 2px 10px; border-radius: 10px; font-size: 8pt; margin-top: 5px;">AGRÉMENT N° 06/2014</div>
+    </td>
+    <td class="header-right" style="width: 25%;">
+      المدرسة العليا الخاصة<br>
+      لتكنولوجيا المعلومات<br>
+      و إدارة الأعمال بنابل<br>
+      رخصة عدد 2014/06
+    </td>
+  </tr>
+</table>
+
+<table class="doc-info">
+  <tr>
+    <td style="width: 60%;">
+      Processus : Relation avec l'environnement<br>
+      Code : FOR.ENV.009<br>
+      Version : 001<br>
+      D.C : 15032024
+    </td>
+    <td style="width: 40%; text-align: right; vertical-align: top;">
+      Page 1 sur 5<br><br>
+      <b>Réf :</b> ..............................
+    </td>
+  </tr>
+</table>
+
+<div class="title-section">
+  <h1>PRÉSENTATION DU CAHIER<br>DES CHARGES</h1>
+  <h2>ECOLE SUPERIEURE PRIVEE DES TECHNOLOGIES<br>D’INFORMATION ET DE MANAGEMENT DE NABEUL</h2>
+  
+  <div style="text-align: center;">
+      <!-- CSS Logo ITBS : Variant ORANGE -->
+      <div class="itbs-logo-container itbs-orange itbs-logo-large">
+          <div class="itbs-square">
+              <div class="itbs-ribbon"></div>
+              <div class="itbs-text-it">it</div>
+          </div>
+          <div class="itbs-text-business">
+              <span style="font-weight: 300;">BUSI\\ESS</span><br>
+              <span style="font-weight: 300;">SCHOOL</span>
+          </div>
+      </div>
+  </div>
+
+  <h3>CAHIER DES CHARGES DE PROJET DE FIN D'ETUDES</h3>
+</div>
+
+<div class="info-section">
+  <div>Filière</div>
+  <div style="font-weight: normal;">3ème année cycle d'ingénieur BI</div>
+  <br>
+  <div>Réalisé par</div>
+  <div style="font-weight: normal;">– Nom & Prénom : Hamza Aouinti</div>
+  <br>
+  <div>SUJET :</div>
+  <div style="font-weight: normal;">Soeurise : Application mobile de réseautage et d'apprentissage</div>
+</div>
+
+<div style="margin-top: 40px; font-size:12pt; border: 1px solid #ccc; padding: 20px;">
+  <p style="margin-bottom: 5px;"><b>1. Page de garde :</b></p>
+  <ul>
+    <li>Nom du Responsable, Grade : [À renseigner]</li>
+    <li>Nom de l’Encadrant, Grade, Fonction : <b>Mme Safa Fennia, Doctorat, Encadrante</b></li>
+    <li>Organisme - Adresse Exacte, Télé - Fax : <b>IT Business School Nabeul - Campus Mrezgua, 8000 Nabeul.</b></li>
+  </ul>
+</div>
+
+<!-- ======================= PAGE BREAK ======================= -->
+<div class="page-break"></div>
+<div style="text-align:right; font-size:10pt;">Page 2 sur 5</div>
+
+<h2 class="section-title">1. Présentation Générale et Contexte de l'Étude</h2>
+
+<h3 class="subsection-title">1.1. Contexte du Projet</h3>
+<p>Le projet "Soeurise" s'inscrit dans le cadre de ma 3ème année du cycle d'ingénieur en Business Intelligence (BI) à l'IT Business School. À l'ère du numérique, les plateformes mobiles de communautés deviennent indispensables pour le développement personnel et professionnel. "Soeurise" vise à proposer un espace sécurisé où la communauté peut partager des connaissances, trouver de l'inspiration et se connecter autour de centres d'intérêt communs.</p>
+<p>L'apprentissage ne se limite plus aux salles de classe. C'est dans ce contexte que le développement d'une application centralisée, offrant à la fois des espaces d'échanges, des sessions de Masterclass pour la formation continue, et des gestions d'Évènements, trouve tout son sens.</p>
+
+<h3 class="subsection-title">1.2. Problématique</h3>
+<p>Bien que des plateformes d'apprentissage et des réseaux sociaux existent de manière indépendante, il y a un manque criant d'applications qui relient de manière fluide ces deux mondes (Networking & E-learning expert) dans une seule interface mobile conviviale et ciblée. La problématique à laquelle ce projet tente de répondre est :</p>
+<p><i>Comment concevoir et développer une solution centralisée, sous forme d'application mobile performante et interconnectée à un back-office, capable d'engager activement ses utilisateurs à travers différents modules (Publications, Masterclasses et Événements) ?</i></p>
+
+<h3 class="subsection-title">1.3. Objectifs et Périmètre du Projet</h3>
+<p>L'objectif principal du projet "Soeurise" est de réaliser de A à Z (Analyse, Conception, Développement, Tests) une application fonctionnelle intégrant des APIs complexes.</p>
+<p>Le périmètre inclut :</p>
+<ul>
+    <li>Le recueil et la validation des besoins fonctionnels et métiers de la plateforme.</li>
+    <li>La modélisation et la structuration de la base de données.</li>
+    <li>Le développement complet de l'API web (Backend).</li>
+    <li>Le développement de l'interface mobile (Frontend multisupport Android/iOS).</li>
+</ul>
+
+<!-- ======================= PAGE BREAK ======================= -->
+<div class="page-break"></div>
+<div style="text-align:right; font-size:10pt;">Page 3 sur 5</div>
+
+<h2 class="section-title">2. Spécifications Fonctionnelles</h2>
+
+<h3 class="subsection-title">2.1. Module Utilisateurs et Authentification</h3>
+<p>Afin de garantir la sécurité des données et de personnaliser l'expérience utilisateur, l'application proposera :</p>
+<ul>
+    <li><b>Inscription & Connexion :</b> Processus d'authentification robuste (Login, Mot de passe sécurisé) utilisant le standard JWT (JSON Web Tokens).</li>
+    <li><b>Gestion de Profil :</b> Mise à jour des informations personnelles, bio, photo de profil et rôles (Utilisateur standard, Formateur/Speaker, Admin).</li>
+    <li><b>Dashboard :</b> Un panneau récapitulatif permettant à l'utilisateur de suivre ses inscriptions récentes aux Masterclasses et Événements.</li>
+</ul>
+
+<h3 class="subsection-title">2.2. Module de Publications (Posts) et Fil d'Actualité</h3>
+<p>Le cœur communautaire de la plateforme repose sur un fil d'actualité dynamique :</p>
+<ul>
+    <li><b>Création et visualisation :</b> Les utilisateurs peuvent créer des posts textuels ou multimédias et les autres membres voient le fil d'actualité mis à jour en temps réel.</li>
+    <li><b>Interactions sociales :</b> Intégration de fonctions de "Likes" ou de commentaires en dessous de chaque publication pour encourager la participation.</li>
+    <li><b>Modération :</b> Signalement ou suppression de contenu inapproprié.</li>
+</ul>
+
+<h3 class="subsection-title">2.3. Module de Formations (Masterclasses)</h3>
+<p>Espace dédié à la formation et à l'échange de connaissances spécialisées :</p>
+<ul>
+    <li><b>Catalogue des Masterclasses :</b> Liste des formations proposées par les intervenants, incluant un titre, une description détaillée, et une miniature.</li>
+    <li><b>Détails et Inscription :</b> Consultation de la page d'une Masterclass spécifique et bouton d'inscription.</li>
+    <li><b>Suivi :</b> Ajout de fonctionnalités permettant d'accéder au support de cours (WebView, vidéo).</li>
+</ul>
+
+<h3 class="subsection-title">2.4. Module de Planification (Événements)</h3>
+<p>Fonctionnalité permettant de dynamiser la communauté dans le monde réel ou virtuel :</p>
+<ul>
+    <li><b>Calendrier d'Événements :</b> Liste détaillée des événements à venir (titre, date, lieu, places disponibles).</li>
+    <li><b>Réservation :</b> Système permettant à l'utilisateur de s'inscrire ou annuler sa participation à un événement donné.</li>
+</ul>
+
+<!-- ======================= PAGE BREAK ======================= -->
+<div class="page-break"></div>
+<div style="text-align:right; font-size:10pt;">Page 4 sur 5</div>
+
+<h2 class="section-title">3. Spécifications Non-Fonctionnelles & Architecture Techniques</h2>
+
+<h3 class="subsection-title">3.1. Architecture Logico-Applicative</h3>
+<p>Afin d'assurer une évolutivité et une robustesse maximales, le projet adopte une architecture N-tiers (MVC orienté API) :</p>
+<ul>
+    <li><b>La couche de présentation (Client Mobile) :</b> C'est l'interface Flutter, responsable du rendu UI, de la navigation et de la consommation des requêtes HTTP asynchrones.</li>
+    <li><b>La couche métier (Serveur Backend / API REST) :</b> Représentée par Express.js. Elle s'occupe du traitement logique, des vérifications d'autorisation, des endpoints et des calculs.</li>
+    <li><b>La couche de persistance (Base de données) :</b> MongoDB (NoSQL) est utilisé pour stocker toutes les entités de façon rapide et structurée (Users, Posts, Events). L'utilisation de Mongoose (ORM) assure la validation des schémas.</li>
+</ul>
+
+<h3 class="subsection-title">3.2. Exigences de Performances, d'Ergonomie et de Sécurité</h3>
+<ul>
+    <li><b>Réactivité (Responsive Design) :</b> L'application mobile (développée avec Flutter) sera optimisée pour tout format d'écran (téléphone, grande diagonale). Les temps de réponse lors d'un passage entre modules doivent être inférieurs à la seconde.</li>
+    <li><b>Sécurité des données :</b> Le trafic entre l'application et l'API devra être protégé (HTTPS en production). Les mots de passe seront hachés via `bcrypt` dans la base MongoDB. Un jeton (token) expirant gèrera les sessions pour prévenir les attaques de session.</li>
+    <li><b>Ergonomie (UX) :</b> L'architecture de l'information (arborescence des menus, Bottom Navigation Bar) obéira aux bonnes pratiques recommandées par Material Design et Cupertino.</li>
+</ul>
+
+<h3 class="subsection-title">3.3. Travaux Pratiques Demandés</h3>
+<p>L'intégralité du cycle de vie logiciel est demandée pour le projet de fin d'études :</p>
+<p><b>1. Etude :</b> Définition de l'UML, user stories et cas d'utilisation.<br>
+<b>2. Conception :</b> Rédaction des diagrammes (Classe, Séquence, Architecture réseau).<br>
+<b>3. Réalisation :</b> Scripting des fichiers serveurs `.js` et des widgets `.dart`.<br>
+<b>4. Tests et Mise en Exploitation :</b> Postman sera utilisé pour le mock d'API. L'application finale compilée (APK) présentera la démo du projet.</p>
+
+<!-- ======================= PAGE BREAK ======================= -->
+<div class="page-break"></div>
+<div style="text-align:right; font-size:10pt;">Page 5 sur 5</div>
+
+<h2 class="section-title">4. Environnements et Planification Stratégique</h2>
+
+<h3 class="subsection-title">4.1. Vue d'Ensemble Technologique</h3>
+<p>Voici la liste détaillée des outils qui constituent l'ADN technique du projet "Soeurise" :</p>
+<ul>
+    <li><b>Langage & Framework Front :</b> Dart / Flutter SDK (développement multiplateforme natif)</li>
+    <li><b>Langage & Framework Back :</b> JavaScript / Node.js avec les librairies (Express, JsonWebToken, Mongoose)</li>
+    <li><b>SGBD :</b> MongoDB </li>
+    <li><b>Assurance Qualité & Tests :</b> Postman, Flutter DevTools</li>
+    <li><b>Outils Collaboratifs :</b> Git (GitHub) pour le versioning, VS Code pour le codage quotidien</li>
+</ul>
+
+<h3 class="subsection-title">4.2. Planification et Déroulement du Projet (Cycle Agile)</h3>
+<p>Le projet se déroulera sur plusieurs itérations (Sprints) et se décomposera ainsi :</p>
+
+<table style="width: 100%; border-collapse: collapse; font-size: 11pt; margin-top:20px;">
+  <tr style="background-color: #eee;">
+      <th style="border: 1px solid #aaa; padding: 10px;text-align: left;">Sprint / Phase</th>
+      <th style="border: 1px solid #aaa; padding: 10px;text-align: left;">Objectifs Fonctionnels de la phase</th>
+  </tr>
+  <tr>
+      <td style="border: 1px solid #aaa; padding: 10px;">Phase de lancement</td>
+      <td style="border: 1px solid #aaa; padding: 10px;">Analyse de l'existant, rédaction du cahier des charges, cadrage technologique du PFE.</td>
+  </tr>
+  <tr>
+      <td style="border: 1px solid #aaa; padding: 10px;">Phase de Modélisation</td>
+      <td style="border: 1px solid #aaa; padding: 10px;">Rédaction des Use Cases, modélisation de la base de données (entités Users, Posts, Masterclasses).</td>
+  </tr>
+  <tr>
+      <td style="border: 1px solid #aaa; padding: 10px;">Sprint 1 : Backend</td>
+      <td style="border: 1px solid #aaa; padding: 10px;">Montage du serveur Express.js, création des routes d'authentification et administration des JWT.</td>
+  </tr>
+  <tr>
+      <td style="border: 1px solid #aaa; padding: 10px;">Sprint 2 : API Rest</td>
+      <td style="border: 1px solid #aaa; padding: 10px;">Développement complet des endpoints REST (CRUD) pour les entités complexes (Posts, Masterclass).</td>
+  </tr>
+  <tr>
+      <td style="border: 1px solid #aaa; padding: 10px;">Sprint 3 : UI Flutter</td>
+      <td style="border: 1px solid #aaa; padding: 10px;">Création des vues tactiles de Soeurise, connexion de Flutter avec les endpoints (API Client).</td>
+  </tr>
+  <tr>
+      <td style="border: 1px solid #aaa; padding: 10px;">Clôture et Livraison</td>
+      <td style="border: 1px solid #aaa; padding: 10px;">Tests finaux, debug des flux, préparation du rapport final de PFE et rendu du présentiel pour soutenance.</td>
+  </tr>
+</table>
+
+<div style="margin-top: 80px;">
+    <table style="width: 100%; border:none;">
+        <tr>
+            <td style="border:none; text-align:left; width:50%;">
+                <b>Signature de l’Etudiant</b><br><br>
+                <i>Hamza Aouinti</i>
+            </td>
+            <td style="border:none; text-align:right; width:50%;">
+                <b>Fait à Nabeul, le ..........................</b><br><br>
+                <b>La Direction</b> / <b>Mme Safa Fennia</b>
+            </td>
+        </tr>
+    </table>
+</div>
+
+</body>
+</html>

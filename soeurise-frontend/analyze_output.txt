@@ -1,0 +1,28 @@
+﻿Analyzing lib...
+
+warning - screens\masterclass_screen.dart:1:8 - Unused import: 'package:flutter/foundation.dart'. Try removing the import directive. - unused_import
+warning - screens\profile_screen.dart:8:8 - Unused import: '../services/community_service.dart'. Try removing the import directive. - unused_import
+   info - screens\masterclass_webview_web.dart:1:1 - 'dart:html' is deprecated and shouldn't be used. Use package:web and dart:js_interop instead. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - screens\masterclass_webview_web.dart:1:1 - Don't use web-only libraries outside Flutter web plugins. Try finding a different library for your needs. - avoid_web_libraries_in_flutter
+   info - screens\masterclass_webview_web.dart:4:8 - The import of 'package:flutter/scheduler.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'. Try removing the import directive. - unnecessary_import
+   info - services\admin_service.dart:24:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\admin_service.dart:44:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\admin_service.dart:55:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\admin_service.dart:69:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\admin_service.dart:83:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\admin_service.dart:99:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\admin_service.dart:110:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\event_service.dart:18:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\masterclass_service.dart:18:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\post_service.dart:24:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\post_service.dart:39:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\post_service.dart:68:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\post_service.dart:79:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\post_service.dart:90:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\post_service.dart:105:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\post_service.dart:121:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\post_service.dart:138:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\post_service.dart:151:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - services\post_service.dart:162:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+
+24 issues found.
