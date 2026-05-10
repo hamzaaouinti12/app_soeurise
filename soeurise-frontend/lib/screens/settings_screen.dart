@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../theme/glass_widgets.dart';
+import '../services.dart';
 import '../services/profile_service.dart';
 import 'login_page.dart';
+import 'privacy_settings_screen.dart';
+import 'blocked_users_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -123,7 +126,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _navTile(
                                 Icons.shield_rounded,
                                 'Confidentialité du profil',
-                                onTap: () {},
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const PrivacySettingsScreen(),
+                                    ),
+                                  );
+                                },
                               ),
                               Divider(
                                 color: AppColors.beigeDark.withAlpha(40),
@@ -132,7 +141,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _navTile(
                                 Icons.block_rounded,
                                 'Utilisateurs bloqués',
-                                onTap: () {},
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const BlockedUsersScreen(),
+                                    ),
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -323,7 +338,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (confirmed == true) {
-      ProfileService.instance.logout();
+      await AuthenticationService.instance.logout();
       if (!context.mounted) return;
       navigator.pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginPage()),

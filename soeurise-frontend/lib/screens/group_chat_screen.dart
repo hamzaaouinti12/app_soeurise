@@ -1,8 +1,12 @@
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../theme/glass_widgets.dart';
 import '../services/community_service.dart';
+import '../services/profile_service.dart';
+import '../services/api_client.dart';
+import '../services/socket_service.dart';
 
 class GroupChatScreen extends StatefulWidget {
   final String communityId;
@@ -21,27 +25,45 @@ class GroupChatScreen extends StatefulWidget {
 class _GroupChatScreenState extends State<GroupChatScreen> {
   late final ValueNotifier<List<ChatMessage>> messages;
   final TextEditingController _controller = TextEditingController();
+  StreamSubscription? _msgSubscription;
 
   @override
   void initState() {
     super.initState();
     messages = CommunityService.instance.messagesFor(widget.communityId);
+    _loadMessages();
+    
+    // Join socket room
+    SocketService().joinGroup(widget.communityId);
+    
+    // Listen for new messages
+    _msgSubscription = SocketService().groupMessageStream.listen((data) {
+      if (data['groupId'] == widget.communityId) {
+        CommunityService.instance.addMessageFromSocket(widget.communityId, data);
+      }
+    });
+  }
+
+  Future<void> _loadMessages() async {
+    await CommunityService.instance.fetchMessages(widget.communityId);
   }
 
   @override
   void dispose() {
+    SocketService().leaveGroup(widget.communityId);
+    _msgSubscription?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    CommunityService.instance.addMessage(
-      widget.communityId,
-      ChatMessage(sender: 'Vous', text: text),
-    );
     _controller.clear();
+    await CommunityService.instance.sendMessage(
+      widget.communityId,
+      text,
+    );
   }
 
   @override
@@ -166,8 +188,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   padding: const EdgeInsets.all(16),
                   itemCount: msgs.length,
                   itemBuilder: (context, index) {
+                    final currentUser = ProfileService.instance.profile.value;
                     final m = msgs[index];
-                    final isMe = m.sender == 'Vous';
+                    final isMe = m.senderId == currentUser.id;
                     return FadeSlideIn(
                       delay: Duration(milliseconds: index * 50),
                       offset: Offset(isMe ? 20 : -20, 0),
@@ -175,76 +198,104 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         alignment: isMe
                             ? Alignment.centerRight
                             : Alignment.centerLeft,
-                        child: Container(
-                          constraints: BoxConstraints(
-                            maxWidth:
-                                MediaQuery.of(context).size.width * 0.75,
-                          ),
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: isMe
-                                ? AppColors.primaryGradient
-                                : null,
-                            color: isMe ? null : Colors.white,
-                            borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(16),
-                              topRight: const Radius.circular(16),
-                              bottomLeft: Radius.circular(isMe ? 16 : 4),
-                              bottomRight: Radius.circular(isMe ? 4 : 16),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: (isMe
-                                        ? AppColors.primary
-                                        : Colors.black)
-                                    .withAlpha(15),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (!isMe) ...[
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: AppColors.primary.withAlpha(30),
+                                backgroundImage: m.senderAvatar.isNotEmpty
+                                    ? NetworkImage(ApiConfig.uploadsUrl(m.senderAvatar))
+                                    : null,
+                                child: m.senderAvatar.isEmpty
+                                    ? Text(
+                                        m.sender.isNotEmpty ? m.sender[0].toUpperCase() : '?',
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      )
+                                    : null,
                               ),
+                              const SizedBox(width: 8),
                             ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (!isMe)
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.only(bottom: 4),
-                                  child: Text(
-                                    m.sender,
-                                    style: AppTextStyles.caption.copyWith(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                            Flexible(
+                              child: Container(
+                                constraints: BoxConstraints(
+                                  maxWidth:
+                                      MediaQuery.of(context).size.width * 0.65,
+                                ),
+                                margin: const EdgeInsets.symmetric(vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: isMe
+                                      ? AppColors.primaryGradient
+                                      : null,
+                                  color: isMe ? null : Colors.white,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: const Radius.circular(16),
+                                    topRight: const Radius.circular(16),
+                                    bottomLeft: Radius.circular(isMe ? 16 : 4),
+                                    bottomRight: Radius.circular(isMe ? 4 : 16),
                                   ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: (isMe
+                                              ? AppColors.primary
+                                              : Colors.black)
+                                          .withAlpha(15),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
-                              Text(
-                                m.text,
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  color: isMe
-                                      ? Colors.white
-                                      : AppColors.textPrimary,
-                                  fontSize: 14,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (!isMe)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 4),
+                                        child: Text(
+                                          m.sender,
+                                          style: AppTextStyles.caption.copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    Text(
+                                      m.text,
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        color: isMe
+                                            ? Colors.white
+                                            : AppColors.textPrimary,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${m.timestamp.hour.toString().padLeft(2, '0')}:${m.timestamp.minute.toString().padLeft(2, '0')}',
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
+                                        fontSize: 10,
+                                        color: isMe
+                                            ? Colors.white70
+                                            : AppColors.textLight,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${m.timestamp.hour.toString().padLeft(2, '0')}:${m.timestamp.minute.toString().padLeft(2, '0')}',
-                                style: TextStyle(
-                                  fontFamily: 'Poppins',
-                                  fontSize: 10,
-                                  color: isMe
-                                      ? Colors.white70
-                                      : AppColors.textLight,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     );

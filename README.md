@@ -20,7 +20,7 @@ Ou les lancer séparément :
 
 ### Backend
 ```bash
-cd backend
+cd soeurise-backend
 npm install
 npm run dev
 ```

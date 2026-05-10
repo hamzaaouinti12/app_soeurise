@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants.dart';
 
@@ -97,21 +98,59 @@ class ApiClient {
     String? fileField,
     String? filePath,
   }) async {
-    final uri = Uri.parse('${ApiConfig.baseUrl}$path');
-    final request = http.MultipartRequest(method, uri);
+    try {
+      final uri = Uri.parse('${ApiConfig.baseUrl}$path');
+      final request = http.MultipartRequest(method, uri);
 
-    final token = await getToken();
-    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+      final token = await getToken();
+      if (token != null) request.headers['Authorization'] = 'Bearer $token';
 
-    request.fields.addAll(fields);
+      request.fields.addAll(fields);
 
-    if (fileField != null && filePath != null) {
-      request.files.add(await http.MultipartFile.fromPath(fileField, filePath));
+      if (fileField != null && filePath != null) {
+        final rawExt = filePath.split('.').last.toLowerCase();
+        String type = 'application';
+        String subtype = rawExt;
+
+        final imageExts = ['jpg', 'jpeg', 'png', 'webp'];
+        final videoExts = ['mp4', 'mov', 'webm'];
+
+        if (imageExts.contains(rawExt)) {
+          type = 'image';
+          subtype = rawExt == 'jpg' ? 'jpeg' : rawExt;
+        } else if (videoExts.contains(rawExt)) {
+          type = 'video';
+          subtype = rawExt == 'mov' ? 'quicktime' : rawExt;
+        } else {
+          type = 'application';
+          subtype = 'octet-stream';
+        }
+
+        final file = File(filePath);
+        final bytes = await file.readAsBytes();
+        final filename = filePath.split('/').last;
+
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            fileField,
+            bytes,
+            filename: filename,
+            contentType: MediaType(type, subtype),
+          ),
+        );
+      }
+
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+      return _parse(response);
+    } catch (e) {
+      return ApiResponse(
+        statusCode: 500,
+        success: false,
+        message: 'Erreur d\'upload: ${e.toString()}',
+        raw: {'success': false, 'message': e.toString()},
+      );
     }
-
-    final streamed = await request.send();
-    final response = await http.Response.fromStream(streamed);
-    return _parse(response);
   }
 
   /// Convenience POST multipart upload.
@@ -174,6 +213,5 @@ class ApiResponse {
     required this.raw,
   });
 
-  String get errorMessage =>
-      errors?.join(', ') ?? message ?? 'Erreur inconnue';
+  String get errorMessage => errors?.join(', ') ?? message ?? 'Erreur inconnue';
 }

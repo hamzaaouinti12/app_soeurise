@@ -22,6 +22,10 @@ router.post("/groups/:id/join", requireAuth, communityController.joinGroup);
 router.get("/groups/:id/membership/me", requireAuth, communityController.getMyMembership);
 router.get("/groups/:id/subscription/me", requireAuth, communityController.getMySubscription);
 
+// ─── MESSAGES ─────────────────────────────────────
+router.get("/groups/:id/messages", requireAuth, communityController.getGroupMessages);
+router.post("/groups/:id/messages", requireAuth, communityController.sendMessage);
+
 // ─── MANAGEMENT (owner/moderator/admin) ───────────
 const mgmt = requireGroupRole(["owner", "moderator"]);
 

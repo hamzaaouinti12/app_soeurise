@@ -32,6 +32,10 @@ const postSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    commentsDisabled: {
+      type: Boolean,
+      default: false,
+    },
     likedBy: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -53,6 +57,14 @@ const postSchema = new mongoose.Schema(
           type: Date,
           default: Date.now,
         },
+        isHidden: {
+          type: Boolean,
+          default: false,
+        },
+        isPinned: {
+          type: Boolean,
+          default: false,
+        },
         likes: [
           {
             type: mongoose.Schema.Types.ObjectId,
@@ -73,6 +85,10 @@ const postSchema = new mongoose.Schema(
             createdAt: {
               type: Date,
               default: Date.now,
+            },
+            isHidden: {
+              type: Boolean,
+              default: false,
             },
             likes: [
               {

@@ -13,6 +13,18 @@ class User {
   final bool isActive;
   final int followingCount;
   final int followersCount;
+  final bool isFollowing;
+  final bool isBlocked;
+
+  /// Compte privé : demande d'abonnement au lieu de suivre directement.
+  final String accountPrivacy;
+
+  /// Demande envoyée (en attente d'acceptation par le compte privé).
+  final bool followRequestSent;
+
+  /// false si profil privé et viewer non abonné (données limitées côté API).
+  final bool canViewContent;
+  final int pendingIncomingFollowRequestsCount;
   final DateTime? createdAt;
 
   User({
@@ -26,6 +38,12 @@ class User {
     this.isActive = true,
     this.followingCount = 0,
     this.followersCount = 0,
+    this.isFollowing = false,
+    this.isBlocked = false,
+    this.accountPrivacy = 'public',
+    this.followRequestSent = false,
+    this.canViewContent = true,
+    this.pendingIncomingFollowRequestsCount = 0,
     this.createdAt,
   });
 
@@ -41,14 +59,89 @@ class User {
       isActive: json['isActive'] ?? true,
       followingCount: json['followingCount'] ?? 0,
       followersCount: json['followersCount'] ?? 0,
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'])
-          : null,
+      isFollowing: json['isFollowing'] ?? false,
+      isBlocked: json['isBlocked'] ?? false,
+      accountPrivacy: json['accountPrivacy']?.toString() ?? 'public',
+      followRequestSent: json['followRequestSent'] == true,
+      canViewContent: json['canViewContent'] != false,
+      pendingIncomingFollowRequestsCount:
+          json['pendingIncomingFollowRequestsCount'] ??
+          json['pendingFollowRequestCount'] ??
+          0,
+      createdAt:
+          json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt'])
+              : null,
     );
   }
 
   String get fullName => '$firstName $lastName';
   String get avatarFullUrl => ApiConfig.uploadsUrl(avatarUrl);
+}
+
+class Story {
+  final String id;
+  final String authorId;
+  final String username;
+  final String profileImageUrl;
+  final String mediaUrl;
+  final String mediaType;
+  final String caption;
+  final DateTime expiresAt;
+  final int viewsCount;
+  final Map<String, int> reactionCounts;
+
+  Story({
+    required this.id,
+    required this.authorId,
+    required this.username,
+    required this.profileImageUrl,
+    required this.mediaUrl,
+    required this.mediaType,
+    this.caption = '',
+    required this.expiresAt,
+    this.viewsCount = 0,
+    this.reactionCounts = const {},
+  });
+
+  bool get isVideo => mediaType == 'video';
+
+  factory Story.fromJson(Map<String, dynamic> json) {
+    final author = json['author'] ?? {};
+    final fName = author['firstName'] ?? '';
+    final lName = author['lastName'] ?? '';
+    final uName = author['username'] ?? '';
+    final avatar = author['avatarUrl'] ?? '';
+    final authorId =
+        author['id']?.toString() ?? author['_id']?.toString() ?? '';
+    final name = fName.isNotEmpty ? '$fName $lName' : uName;
+
+    final reactionData = json['reactionCounts'] as Map<String, dynamic>? ?? {};
+    final reactionCounts = reactionData.map((key, value) {
+      return MapEntry(
+        key.toString(),
+        (value is int ? value : int.tryParse(value.toString()) ?? 0),
+      );
+    });
+
+    return Story(
+      id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
+      authorId: authorId,
+      username: name.isNotEmpty ? name : 'Utilisateur',
+      profileImageUrl: ApiConfig.uploadsUrl(avatar),
+      mediaUrl: ApiConfig.uploadsUrl(json['mediaUrl'] ?? ''),
+      mediaType: json['mediaType']?.toString() ?? 'image',
+      caption: json['caption']?.toString() ?? '',
+      expiresAt:
+          json['expiresAt'] != null
+              ? DateTime.tryParse(json['expiresAt'].toString()) ??
+                  DateTime.now()
+              : DateTime.now(),
+      viewsCount:
+          json['viewsCount'] ?? (json['views'] as List<dynamic>?)?.length ?? 0,
+      reactionCounts: reactionCounts,
+    );
+  }
 }
 
 class Post {
@@ -64,6 +157,7 @@ class Post {
   int comments;
   int shares;
   bool isLiked;
+  bool commentsDisabled;
 
   Post({
     required this.id,
@@ -78,6 +172,7 @@ class Post {
     this.comments = 0,
     this.shares = 0,
     this.isLiked = false,
+    this.commentsDisabled = false,
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -86,7 +181,8 @@ class Post {
     final lName = author['lastName'] ?? '';
     final uName = author['username'] ?? '';
     final avatar = author['avatarUrl'] ?? '';
-    final authorId = author['id']?.toString() ?? author['_id']?.toString() ?? '';
+    final authorId =
+        author['id']?.toString() ?? author['_id']?.toString() ?? '';
 
     final name = fName.isNotEmpty ? '$fName $lName' : uName;
 
@@ -96,16 +192,19 @@ class Post {
       username: name.isNotEmpty ? name : 'Utilisateur',
       profileImageUrl: ApiConfig.uploadsUrl(avatar),
       content: json['content'] ?? '',
-      imageUrl: json['image'] != null && json['image'].toString().isNotEmpty
-          ? ApiConfig.uploadsUrl(json['image'])
-          : null,
-      timestamp: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
-          : DateTime.now(),
+      imageUrl:
+          json['image'] != null && json['image'].toString().isNotEmpty
+              ? ApiConfig.uploadsUrl(json['image'])
+              : null,
+      timestamp:
+          json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
+              : DateTime.now(),
       likes: json['likesCount'] ?? 0,
       comments: json['commentsCount'] ?? 0,
       shares: json['sharesCount'] ?? 0,
       isLiked: json['isLiked'] ?? false,
+      commentsDisabled: json['commentsDisabled'] ?? false,
     );
   }
 }
@@ -119,6 +218,8 @@ class Comment {
   final DateTime createdAt;
   int likesCount;
   bool isLiked;
+  bool isHidden;
+  bool isPinned;
   List<Comment> replies;
 
   Comment({
@@ -130,6 +231,8 @@ class Comment {
     required this.createdAt,
     this.likesCount = 0,
     this.isLiked = false,
+    this.isHidden = false,
+    this.isPinned = false,
     this.replies = const [],
   });
 
@@ -139,7 +242,8 @@ class Comment {
     final lName = author['lastName'] ?? '';
     final uName = author['username'] ?? '';
     final avatar = author['avatarUrl'] ?? '';
-    final authorId = author['id']?.toString() ?? author['_id']?.toString() ?? '';
+    final authorId =
+        author['id']?.toString() ?? author['_id']?.toString() ?? '';
 
     final name = fName.isNotEmpty ? '$fName $lName' : uName;
     final likes = json['likes'] as List<dynamic>? ?? [];
@@ -152,11 +256,14 @@ class Comment {
       authorName: name.isNotEmpty ? name : 'Utilisateur',
       authorAvatar: ApiConfig.uploadsUrl(avatar),
       content: json['content'] ?? '',
-      createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
-          : DateTime.now(),
-      likesCount: likes.length,
-      isLiked: false,
+      createdAt:
+          json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
+              : DateTime.now(),
+      likesCount: json['likesCount'] ?? likes.length,
+      isLiked: json['isLiked'] ?? false,
+      isHidden: json['isHidden'] ?? false,
+      isPinned: json['isPinned'] ?? false,
       replies: repliesJson.map((r) => Comment.fromJson(r)).toList(),
     );
   }
@@ -220,9 +327,10 @@ class Masterclass {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       instructorName: json['instructorName'] ?? '',
-      createdDate: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
-          : DateTime.now(),
+      createdDate:
+          json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
+              : DateTime.now(),
       videoUrl: json['videoUrl'] ?? '',
       thumbnailUrl: json['thumbnailUrl'] ?? '',
     );
@@ -250,9 +358,10 @@ class Event {
     return Event(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
       title: json['title'] ?? '',
-      dateTime: json['dateTime'] != null
-          ? DateTime.tryParse(json['dateTime']) ?? DateTime.now()
-          : DateTime.now(),
+      dateTime:
+          json['dateTime'] != null
+              ? DateTime.tryParse(json['dateTime']) ?? DateTime.now()
+              : DateTime.now(),
       type: json['type'] ?? 'online',
       location: json['location'] ?? '',
       imageUrl: json['imageUrl'] ?? '',

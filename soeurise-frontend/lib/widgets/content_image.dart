@@ -10,7 +10,7 @@ class ContentImage extends StatelessWidget {
   const ContentImage({
     required this.imageUrl,
     this.height = 200,
-    this.fit = BoxFit.cover,
+    this.fit = BoxFit.contain,
     super.key,
   });
 

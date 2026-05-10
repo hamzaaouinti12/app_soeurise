@@ -27,6 +27,8 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
+        imageQuality: 70,
+        maxWidth: 1080,
       );
       if (!mounted) return;
       if (pickedFile != null) {
@@ -141,37 +143,25 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                       FadeSlideIn(
                         child: Row(
                           children: [
-                            UserAvatar(
-                              imageUrl:
-                                  ProfileService
-                                      .instance
-                                      .profile
-                                      .value
-                                      .profileImageUrl,
-                              username:
-                                  ProfileService
-                                      .instance
-                                      .profile
-                                      .value
-                                      .fullName,
-                              radius: 24,
-                            ),
+                            const CurrentUserAvatar(radius: 24),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    ProfileService
-                                        .instance
-                                        .profile
-                                        .value
-                                        .fullName,
-                                    style: AppTextStyles.bodyLarge.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  ValueListenableBuilder<Profile>(
+                                    valueListenable:
+                                        ProfileService.instance.profile,
+                                    builder: (context, profile, _) {
+                                      return Text(
+                                        profile.fullName,
+                                        style: AppTextStyles.bodyLarge.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      );
+                                    },
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
@@ -233,7 +223,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                                   selectedImage!,
                                   height: 200,
                                   width: double.infinity,
-                                  fit: BoxFit.cover,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                               Positioned(

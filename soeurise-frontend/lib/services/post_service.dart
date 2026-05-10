@@ -1,5 +1,6 @@
 import 'dart:io';
 import '../models/models.dart';
+import '../constants.dart';
 import 'api_client.dart';
 
 class PostService {
@@ -160,6 +161,88 @@ class PostService {
       return response.success;
     } catch (e) {
       print('Error toggling follow: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateComment(
+    String postId,
+    String commentId,
+    String content,
+  ) async {
+    try {
+      print('API Call: PUT /posts/$postId/comments/$commentId');
+      final response = await ApiClient.instance.put(
+        '/posts/$postId/comments/$commentId',
+        {'content': content},
+      );
+      print('API Response: ${response.success} - ${response.message}');
+      return response.success;
+    } catch (e) {
+      print('API Error in updateComment: $e');
+      return false;
+    }
+  }
+
+  /// Delete a comment
+  Future<bool> deleteComment(String postId, String commentId) async {
+    try {
+      final url = '${ApiConfig.baseUrl}/posts/$postId/comments/$commentId';
+      print('API Call: DELETE $url');
+      final response = await ApiClient.instance.delete(
+        '/posts/$postId/comments/$commentId',
+      );
+      print('API Response: ${response.success} - ${response.message}');
+      return response.success;
+    } catch (e) {
+      print('API Error in deleteComment: $e');
+      return false;
+    }
+  }
+
+  /// Toggle hide/unhide a comment
+  Future<bool> toggleHideComment(String postId, String commentId) async {
+    try {
+      final url = '${ApiConfig.baseUrl}/posts/$postId/comments/$commentId/hide';
+      print('API Call: POST $url');
+      final response = await ApiClient.instance.post(
+        '/posts/$postId/comments/$commentId/hide',
+      );
+      print('API Response: ${response.success} - ${response.message}');
+      return response.success;
+    } catch (e) {
+      print('API Error in toggleHideComment: $e');
+      return false;
+    }
+  }
+
+  /// Toggle pin/unpin a comment
+  Future<bool> togglePinComment(String postId, String commentId) async {
+    try {
+      final url = '${ApiConfig.baseUrl}/posts/$postId/comments/$commentId/pin';
+      print('API Call: POST $url');
+      final response = await ApiClient.instance.post(
+        '/posts/$postId/comments/$commentId/pin',
+      );
+      print('API Response: ${response.success} - ${response.message}');
+      return response.success;
+    } catch (e) {
+      print('API Error in togglePinComment: $e');
+      return false;
+    }
+  }
+
+  /// Toggle disable/enable comments for a post
+  Future<bool> toggleCommentsDisabled(String postId) async {
+    try {
+      print('API Call: POST /posts/$postId/toggle-comments');
+      final response = await ApiClient.instance.post(
+        '/posts/$postId/toggle-comments',
+      );
+      print('API Response: ${response.success} - ${response.message}');
+      return response.success;
+    } catch (e) {
+      print('API Error in toggleCommentsDisabled: $e');
       return false;
     }
   }

@@ -9,6 +9,9 @@ import 'events_screen.dart';
 import 'profile_screen.dart';
 import 'post_creation_screen.dart';
 import 'admin_screen.dart';
+import '../services/socket_service.dart';
+import '../services/notification_service.dart';
+import 'dart:async';
 
 class MainApp extends StatefulWidget {
   const MainApp({super.key});
@@ -22,6 +25,8 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
   late List<AnimationController> _iconControllers;
   final GlobalKey<HomeScreenState> _homeScreenKey =
       GlobalKey<HomeScreenState>();
+  StreamSubscription? _notifSubscription;
+  StreamSubscription? _msgSubscription;
 
   late final List<Widget> _screens;
 
@@ -55,6 +60,39 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
       ),
     );
     _iconControllers[0].forward();
+
+    // Init Socket and Notifications
+    _initRealtime();
+    NotificationService.instance.getUnreadCount();
+  }
+
+  void _initRealtime() {
+    SocketService().init();
+    
+    _notifSubscription = SocketService().notificationStream.listen((notif) {
+      if (mounted) {
+        NotificationService.showNotificationSnackBar(
+          context, 
+          notif['text'] ?? 'Nouvelle notification'
+        );
+        // Update unread count
+        NotificationService.instance.unreadCount.value++;
+        
+        // Also refresh profile if it was a follow request
+        if (notif['type'] == 'follow') {
+           ProfileService.instance.refreshProfile();
+        }
+      }
+    });
+
+    _msgSubscription = SocketService().messageStream.listen((msg) {
+       if (mounted) {
+         NotificationService.showNotificationSnackBar(
+           context, 
+           'Nouveau message de ${msg['sender']['username']}'
+         );
+       }
+    });
   }
 
   @override
@@ -62,6 +100,8 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
     for (var c in _iconControllers) {
       c.dispose();
     }
+    _notifSubscription?.cancel();
+    _msgSubscription?.cancel();
     super.dispose();
   }
 
@@ -106,8 +146,9 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
       floatingActionButton:
           _selectedIndex == 0
               ? Container(
-                margin: const EdgeInsets.only(bottom: 40),
+                margin: const EdgeInsets.only(bottom: 0),
                 child: FloatingActionButton(
+                  heroTag: 'main_fab_post_creation',
                   onPressed: _openPostCreation,
                   backgroundColor: Colors.transparent,
                   elevation: 8,
@@ -225,19 +266,60 @@ class _MainAppState extends State<MainApp> with TickerProviderStateMixin {
                                   : AppColors.textLight,
                           size: 22,
                         ),
-                        if (isProfile && isAdmin)
-                          Positioned(
-                            right: -3,
-                            top: -3,
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
+                        if (isProfile) ...[
+                          if (isAdmin)
+                            Positioned(
+                              right: -3,
+                              top: -3,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
                             ),
+                          ValueListenableBuilder<int>(
+                            valueListenable: ProfileService.instance.pendingFollowRequestsCount,
+                            builder: (context, count, _) {
+                              if (count <= 0) return const SizedBox.shrink();
+                              return Positioned(
+                                right: -8,
+                                top: -8,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 1.5),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withAlpha(40),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 18,
+                                    minHeight: 18,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      count > 9 ? '9+' : '$count',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
+                        ],
                       ],
                     ),
                   ),

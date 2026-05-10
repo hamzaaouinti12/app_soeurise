@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../constants.dart';
 import '../theme/glass_widgets.dart';
 import '../widgets/user_avatar.dart';
 import '../services/profile_service.dart';
-import '../services/community_service.dart';
 import '../services.dart';
 import 'events_screen.dart';
 import 'masterclass_screen.dart';
 import 'communities_screen.dart';
 import 'settings_screen.dart';
+import 'follow_requests_screen.dart';
 import 'login_page.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -29,92 +28,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final lastNameController = TextEditingController(text: profile.lastName);
     final usernameController = TextEditingController(text: profile.username);
     final bioController = TextEditingController(text: profile.bio);
-    File? tempImageFile;
-
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(AppBorderRadius.xxl),
-              topRight: Radius.circular(AppBorderRadius.xxl),
+      builder: (context) {
+        bool isUploadingAvatar = false;
+        return HeroMode(
+          enabled: false,
+          child: StatefulBuilder(
+          builder: (context, setState) => Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle bar
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.beigeDark,
-                    borderRadius: BorderRadius.circular(2),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(AppBorderRadius.xxl),
+                topRight: Radius.circular(AppBorderRadius.xxl),
+              ),
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle bar
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.beigeDark,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Modifier le profil',
-                  style: AppTextStyles.headline3,
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Modifier le profil',
+                    style: AppTextStyles.headline3,
+                  ),
+                  const SizedBox(height: 24),
 
-                // Editable Avatar
-                GestureDetector(
-                  onTap: () async {
-                    final picked =
-                        await _picker.pickImage(source: ImageSource.gallery);
-                    if (picked != null) {
-                      setState(() {
-                        tempImageFile = File(picked.path);
-                      });
-                    }
-                  },
-                  child: Stack(
-                    children: [
-                      tempImageFile != null
-                          ? CircleAvatar(
-                              radius: 40,
-                              backgroundImage: FileImage(tempImageFile!),
-                            )
-                          : UserAvatar(
-                              imageUrl:
-                                  profile.profileImageUrl.isNotEmpty
-                                      ? profile.profileImageUrl
-                                      : null,
-                              username: profile.username.isNotEmpty
-                                  ? profile.username
-                                  : '??',
-                              radius: 40,
+                  // Editable Avatar
+                  GestureDetector(
+                    onTap: () async {
+                      if (isUploadingAvatar) return;
+                      final picked = await _picker.pickImage(
+                        source: ImageSource.gallery,
+                        imageQuality: 70,
+                        maxWidth: 800,
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          isUploadingAvatar = true;
+                        });
+                        
+                        final (success, error) = await ProfileService.instance.updateAvatarWithError(picked.path);
+                        
+                        setState(() {
+                          isUploadingAvatar = false;
+                        });
+                        
+                        if (success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Photo de profil mise à jour ✅'),
+                              backgroundColor: AppColors.successColor,
                             ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt_rounded,
-                            color: Colors.white,
-                            size: 16,
-                          ),
+                          );
+                        } else if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(error ?? 'Erreur lors de la mise à jour de la photo'),
+                              backgroundColor: AppColors.errorColor,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: Stack(
+                      children: [
+                        UserAvatar(
+                          imageUrl:
+                              ProfileService.instance.profile.value.profileImageUrl.isNotEmpty
+                                  ? ProfileService.instance.profile.value.profileImageUrlWithCache
+                                  : null,
+                          username: ProfileService.instance.profile.value.username.isNotEmpty
+                              ? ProfileService.instance.profile.value.username
+                              : '??',
+                          radius: 40,
                         ),
-                      ),
-                    ],
+                        if (isUploadingAvatar)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.black45,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(color: Colors.white),
+                              ),
+                            ),
+                          )
+                        else
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt_rounded,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
 
                 const SizedBox(height: 24),
 
@@ -160,18 +195,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       firstName: firstNameController.text.trim(),
                       lastName: lastNameController.text.trim(),
                       username: usernameController.text.trim(),
-                      // bio feature not in backend user yet, could be added later
+                      // email is sent silently (required by backend)
                     );
-                    
-                    if (tempImageFile != null) {
-                      await ProfileService.instance.updateAvatar(tempImageFile!.path);
-                    }
 
                     if (success && context.mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Profil mis à jour'),
+                          content: Text('Profil mis à jour ✅'),
                           backgroundColor: AppColors.successColor,
                         ),
                       );
@@ -186,12 +217,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
               ],
-            ),
-          ),
-        ),
-      ),
+            ),           // Column
+          ),             // SingleChildScrollView
+        ),               // Container (StatefulBuilder body)
+        ),               // StatefulBuilder
+        );               // HeroMode
+      },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -265,24 +299,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     shape: BoxShape.circle,
                                     color: Colors.white,
                                   ),
-                                  child: Center(
-                                    child: profile.profileImageFile != null
-                                        ? CircleAvatar(
-                                            radius: 46,
-                                            backgroundImage: FileImage(
-                                                profile.profileImageFile!),
-                                          )
-                                        : UserAvatar(
-                                            imageUrl: profile
-                                                    .profileImageUrl.isNotEmpty
-                                                ? profile.profileImageUrl
-                                                : null,
-                                            username: profile
-                                                    .username.isNotEmpty
-                                                ? profile.username
-                                                : 'U',
-                                            radius: 46,
-                                          ),
+                                  child: const Center(
+                                    child: CurrentUserAvatar(radius: 46),
                                   ),
                                 ),
                               ],
@@ -476,6 +494,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
 
+                  const SizedBox(height: 12),
+
+                  // Follow Requests Section (only for private accounts)
+                  ValueListenableBuilder<Profile>(
+                    valueListenable: ProfileService.instance.profile,
+                    builder: (context, profile, _) {
+                      if (!profile.isPrivateAccount) return const SizedBox.shrink();
+                      
+                      return FadeSlideIn(
+                        delay: const Duration(milliseconds: 750),
+                        child: ValueListenableBuilder<int>(
+                          valueListenable: ProfileService.instance.pendingFollowRequestsCount,
+                          builder: (context, count, _) {
+                            return _buildActivityItemWithBadge(
+                              context,
+                              icon: Icons.mail_outline_rounded,
+                              title: 'Demandes d\'abonnement',
+                              subtitle: 'Gérer les demandes en attente',
+                              badgeCount: count > 0 ? count : null,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const FollowRequestsScreen(),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+
                   const SizedBox(height: 40),
 
                   // Logout Button
@@ -543,6 +595,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: AppColors.textSecondary,
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildActivityItemWithBadge(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    int? badgeCount,
+    required VoidCallback onTap,
+  }) {
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTextStyles.bodyLarge.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: AppTextStyles.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (badgeCount != null && badgeCount > 0)
+          Positioned(
+            top: -4,
+            right: 4,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.errorColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                badgeCount.toString(),
+                style: AppTextStyles.caption.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }

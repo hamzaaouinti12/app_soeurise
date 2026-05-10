@@ -25,6 +25,9 @@ const updateProfileSchema = Joi.object({
         "any.required": "Email requis",
         "string.email": "Email invalide",
     }),
+    accountPrivacy: Joi.string().valid("public", "private").optional().messages({
+        "any.only": "Confidentialité invalide (public ou private)",
+    }),
 });
 
 module.exports = { updateProfileSchema };

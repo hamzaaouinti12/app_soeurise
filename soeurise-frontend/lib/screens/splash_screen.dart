@@ -5,6 +5,7 @@ import 'onboarding_screen.dart';
 import 'main_app.dart';
 import '../services.dart';
 import '../services/profile_service.dart';
+import '../services/community_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -74,6 +75,9 @@ class _SplashScreenState extends State<SplashScreen>
     if (isLoggedIn) {
       // Validate token by fetching current profile
       profileLoaded = await ProfileService.instance.loadProfile();
+      if (profileLoaded) {
+        await CommunityService.instance.loadLocalState();
+      }
     }
 
     final elapsed = stopwatch.elapsedMilliseconds;

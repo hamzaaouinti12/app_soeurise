@@ -60,14 +60,23 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
 
   Future<void> _handleJoin(Community c) async {
     final success = await CommunityService.instance.joinGroup(c.id);
-    if (success && mounted) {
+    if (!mounted) return;
+    
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Demande envoyée à ${c.name}!'),
+          content: Text('Demande traitée avec succès pour ${c.name}!'),
           backgroundColor: AppColors.successColor,
         ),
       );
       setState(() {}); // Trigger rebuild to show joined status
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Impossible de rejoindre ${c.name}. Vous avez peut-être déjà une demande en attente ou vous êtes banni.'),
+          backgroundColor: AppColors.errorColor,
+        ),
+      );
     }
   }
 
@@ -289,6 +298,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -2,7 +2,9 @@ const Group = require("../models/Group");
 const GroupMember = require("../models/GroupMember");
 const Subscription = require("../models/Subscription");
 const User = require("../../users/models/User");
+const GroupMessage = require("../models/GroupMessage");
 const { formatPagination } = require("../../../utils/pagination");
+const notificationsService = require("../../notifications/services/notifications.service");
 
 // ──────────────────────────────────────────
 //  Phase 3-4: fonctions existantes
@@ -196,6 +198,87 @@ async function getSubscription(groupId, userId) {
 }
 
 // ──────────────────────────────────────────
+//  Chat Messages
+// ──────────────────────────────────────────
+
+const { getIO } = require("../../../utils/socket");
+
+async function sendMessage(groupId, userId, text) {
+    const group = await Group.findById(groupId);
+    if (!group) {
+        const err = new Error("Groupe non trouvé");
+        err.statusCode = 404;
+        throw err;
+    }
+
+    const member = await GroupMember.findOne({ groupId, userId, status: "active" });
+    if (!member && !group.isPublic) {
+        const err = new Error("Seuls les membres actifs peuvent envoyer des messages");
+        err.statusCode = 403;
+        throw err;
+    }
+
+    const message = await GroupMessage.create({
+        groupId,
+        senderId: userId,
+        text,
+    });
+
+    await message.populate("senderId", "firstName lastName username avatarUrl");
+
+    const publicMsg = message.toPublic();
+
+    // Emit via socket to the group room
+    try {
+        const io = getIO();
+        io.to(`group_${groupId}`).emit("new_group_message", publicMsg);
+
+        // Also create individual notifications for other active members
+        const members = await GroupMember.find({ groupId, status: "active", userId: { $ne: userId } });
+        const sender = await User.findById(userId).select("username");
+        
+        for (const member of members) {
+            await notificationsService.createNotification({
+                recipient: member.userId,
+                sender: userId,
+                type: "group_message",
+                group: groupId,
+                text: `Nouveau message dans le groupe ${group.name} par ${sender.username}`,
+            });
+        }
+    } catch (err) {
+        console.error("Socket emit/notification error:", err);
+    }
+
+    return publicMsg;
+}
+
+async function getGroupMessages(groupId, userId, limit = 50) {
+    const group = await Group.findById(groupId);
+    if (!group) {
+        const err = new Error("Groupe non trouvé");
+        err.statusCode = 404;
+        throw err;
+    }
+
+    // Checking if the user can view the group messages
+    const { canView } = await canViewGroup(groupId, userId);
+    if (!canView) {
+        const err = new Error("Accès non autorisé à ce groupe");
+        err.statusCode = 403;
+        throw err;
+    }
+
+    const messages = await GroupMessage.find({ groupId })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .populate("senderId", "firstName lastName username avatarUrl");
+
+    // Reverse to send oldest first since sort is descending
+    return messages.reverse().map((m) => m.toPublic());
+}
+
+// ──────────────────────────────────────────
 //  Phase 5: gestion membres & demandes
 // ──────────────────────────────────────────
 
@@ -378,6 +461,8 @@ module.exports = {
     getMembership,
     isSubscribed,
     getSubscription,
+    sendMessage,
+    getGroupMessages,
     // Phase 5
     listPendingRequests,
     handleRequest,

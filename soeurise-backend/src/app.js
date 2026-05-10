@@ -19,6 +19,9 @@ const adminRoutes = require("./modules/admin/routes/admin.routes");
 const communityRoutes = require("./modules/community/routes/community.routes");
 const masterclassRoutes = require("./modules/masterclass/routes/masterclass.routes");
 const eventsRoutes = require("./modules/events/routes/events.routes");
+const notificationRoutes = require("./modules/notifications/routes/notifications.routes");
+const messageRoutes = require("./modules/messages/routes/messages.routes");
+const storyRoutes = require("./modules/stories/routes/stories.routes");
 
 function createApp() {
   const app = express();
@@ -28,9 +31,14 @@ function createApp() {
   app.use(express.json({ limit: "2mb" }));
   app.use(express.urlencoded({ extended: true }));
   app.use(morgan("dev"));
+  app.use((req, res, next) => {
+    console.log(`[DEBUG] Incoming Request: ${req.method} ${req.url}`);
+    next();
+  });
 
   // ✅ SERVIR LES IMAGES UPLOADÉES
-  app.use("/uploads", express.static("uploads"));
+  const path = require("path");
+  app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
   app.use(
     rateLimit({
@@ -57,6 +65,9 @@ function createApp() {
   app.use("/api/community", communityRoutes);
   app.use("/api/masterclasses", masterclassRoutes);
   app.use("/api/events", eventsRoutes);
+  app.use("/api/notifications", notificationRoutes);
+  app.use("/api/messages", messageRoutes);
+  app.use("/api/stories", storyRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

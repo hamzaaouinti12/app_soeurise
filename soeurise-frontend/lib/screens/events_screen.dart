@@ -49,6 +49,7 @@ class _EventsScreenState extends State<EventsScreen> {
         builder: (context, profile, _) {
           if (profile.accountType != 'admin') return const SizedBox.shrink();
           return FloatingActionButton(
+            heroTag: 'events_fab', // Unique tag to prevent Hero conflicts
             onPressed: () => _showCreateEventDialog(),
             backgroundColor: AppColors.primary,
             child: const Icon(Icons.add_rounded, color: Colors.white),

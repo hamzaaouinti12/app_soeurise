@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -10,13 +11,24 @@ Widget buildWebView({
   required VoidCallback onLoadFinished,
   required VoidCallback onError,
 }) {
-  return _MobileWebView(
-    key: key,
-    url: url,
-    onLoadStart: onLoadStart,
-    onProgress: onProgress,
-    onLoadFinished: onLoadFinished,
-    onError: onError,
+  if (Platform.isAndroid || Platform.isIOS) {
+    return _MobileWebView(
+      key: key,
+      url: url,
+      onLoadStart: onLoadStart,
+      onProgress: onProgress,
+      onLoadFinished: onLoadFinished,
+      onError: onError,
+    );
+  }
+
+  // Fallback for Windows/macOS/Linux
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  });
+
+  return const Center(
+    child: Text('Ouverture dans le navigateur...'),
   );
 }
 

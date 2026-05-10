@@ -1,0 +1,9 @@
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {3.1}Introduction}{\reset@font\mtcSfont 39}{section.3.1}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {3.2}Présentation du Langage UML}{\reset@font\mtcSfont 39}{section.3.2}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {3.3}Architecture Logique}{\reset@font\mtcSfont 40}{section.3.3}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {3.3.1}Présentation de l'Architecture 3-Tiers}{\reset@font\mtcSSfont 40}{subsection.3.3.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {3.3.2}Avantages de cette Architecture}{\reset@font\mtcSSfont 41}{subsection.3.3.2}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {3.4}Diagramme de Classes}{\reset@font\mtcSfont 42}{section.3.4}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {3.4.1}Diagramme de séquence « S'authentifier »}{\reset@font\mtcSSfont 42}{subsection.3.4.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {3.4.2}Diagramme de séquence « S'inscrire à un événement »}{\reset@font\mtcSSfont 44}{subsection.3.4.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {3.4.3}Diagramme de séquence « Gérer le contenu »}{\reset@font\mtcSSfont 45}{subsection.3.4.3}}

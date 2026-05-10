@@ -1,6 +1,12 @@
 import 'services/api_client.dart';
 import 'models/models.dart';
 import 'services/profile_service.dart';
+import 'services/community_service.dart';
+import 'services/notification_service.dart';
+import 'services/socket_service.dart';
+
+export 'services/notification_service.dart';
+export 'services/socket_service.dart';
 
 // ─── Authentication Service ───
 class AuthenticationService {
@@ -21,7 +27,10 @@ class AuthenticationService {
       if (res.success && res.token != null) {
         await _api.saveToken(res.token!);
         final user = res.user != null ? User.fromJson(res.user!) : null;
-        if (user != null) ProfileService.instance.setFromUser(user);
+        if (user != null) {
+          ProfileService.instance.setFromUser(user);
+          await CommunityService.instance.loadLocalState();
+        }
         return {'success': true, 'user': user};
       }
 
@@ -62,7 +71,10 @@ class AuthenticationService {
       if (res.success && res.token != null) {
         await _api.saveToken(res.token!);
         final user = res.user != null ? User.fromJson(res.user!) : null;
-        if (user != null) ProfileService.instance.setFromUser(user);
+        if (user != null) {
+          ProfileService.instance.setFromUser(user);
+          await CommunityService.instance.loadLocalState();
+        }
         return {'success': true, 'user': user};
       }
 
@@ -79,6 +91,7 @@ class AuthenticationService {
       if (res.success && res.user != null) {
         final user = User.fromJson(res.user!);
         ProfileService.instance.setFromUser(user);
+        await CommunityService.instance.loadLocalState();
         return user;
       }
       return null;
@@ -87,13 +100,18 @@ class AuthenticationService {
     }
   }
 
-  /// Logout — clears JWT token and resets profile.
+  /// Logout — clears JWT token and resets all services.
   Future<bool> logout() async {
     try {
-      await _api.clearToken();
-      ProfileService.instance.logout();
+      // 1. Clean Profile (this also clears token, disconnects socket, and resets notifications)
+      await ProfileService.instance.logout();
+      
+      // 2. Clean Community state
+      CommunityService.instance.clear();
+      
       return true;
-    } catch (_) {
+    } catch (e) {
+      print('Error during logout: $e');
       return false;
     }
   }
@@ -136,9 +154,4 @@ class ValidationService {
   }
 }
 
-// ─── Notification Service ───
-class NotificationService {
-  static void showSuccessMessage(dynamic context, String message) {}
-  static void showErrorMessage(dynamic context, String message) {}
-  static void showInfoMessage(dynamic context, String message) {}
-}
+

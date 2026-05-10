@@ -7,6 +7,7 @@ const {
     addMemberSchema,
     updateMemberSchema,
     memberIdSchema,
+    sendMessageSchema,
 } = require("../validators/community.validators");
 
 // ──────────────────────────────────────────
@@ -189,6 +190,72 @@ async function getMySubscription(req, res, next) {
 }
 
 // ──────────────────────────────────────────
+//  Chat Messages
+// ──────────────────────────────────────────
+
+async function getGroupMessages(req, res, next) {
+    try {
+        const { error } = groupIdSchema.validate(req.params);
+        if (error) {
+            return res.status(400).json({
+                success: false,
+                message: "ID de groupe invalide",
+            });
+        }
+
+        const messages = await communityService.getGroupMessages(
+            req.params.id,
+            req.user._id,
+            req.query.limit ? parseInt(req.query.limit, 10) : 50
+        );
+
+        res.json({
+            success: true,
+            data: { messages },
+        });
+    } catch (err) {
+        next(err);
+    }
+}
+
+async function sendMessage(req, res, next) {
+    try {
+        const { error: paramError } = groupIdSchema.validate(req.params);
+        if (paramError) {
+            return res.status(400).json({
+                success: false,
+                message: "ID de groupe invalide",
+            });
+        }
+
+        const { error, value } = sendMessageSchema.validate(req.body, {
+            stripUnknown: true,
+        });
+        if (error) {
+            return res.status(400).json({
+                success: false,
+                message: "Données invalides",
+                errors: error.details.map((d) => d.message),
+            });
+        }
+
+        const message = await communityService.sendMessage(
+            req.params.id,
+            req.user._id,
+            value.text
+        );
+
+        res.status(201).json({
+            success: true,
+            message: "Message envoyé",
+            data: { message },
+        });
+    } catch (err) {
+        next(err);
+    }
+}
+
+// ──────────────────────────────────────────
 //  Phase 5: gestion membres & demandes
 // ──────────────────────────────────────────
 
@@ -350,6 +417,8 @@ module.exports = {
     joinGroup,
     getMyMembership,
     getMySubscription,
+    getGroupMessages,
+    sendMessage,
     // Phase 5
     listRequests,
     handleRequest,

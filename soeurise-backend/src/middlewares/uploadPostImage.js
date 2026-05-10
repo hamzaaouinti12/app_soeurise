@@ -20,7 +20,7 @@ const storage = multer.diskStorage({
 });
 
 function fileFilter(req, file, cb) {
-  const allowed = ["image/jpeg", "image/png", "image/webp"];
+  const allowed = ["image/jpeg", "image/png", "image/webp", "application/octet-stream"];
   if (!allowed.includes(file.mimetype)) {
     return cb(new Error("Format non supporté (jpg/png/webp uniquement)"));
   }

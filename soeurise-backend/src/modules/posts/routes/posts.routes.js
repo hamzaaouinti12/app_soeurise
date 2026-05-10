@@ -23,16 +23,31 @@ router.post("/:id/like", postsController.toggleLike);
 // POST /api/posts/:id/share - Partager un post
 router.post("/:id/share", postsController.sharePost);
 
-// GET /api/posts/:id/comments - Récupérer les commentaires d'un post
-router.get("/:id/comments", postsController.getComments);
+// POST /api/posts/:id/comments/:commentId/hide - Masquer/Afficher un commentaire
+router.post("/:id/comments/:commentId/hide", postsController.toggleHideComment);
 
-// POST /api/posts/:id/comments - Ajouter un commentaire
-router.post("/:id/comments", postsController.addComment);
+// POST /api/posts/:id/comments/:commentId/pin - Épingler/Désépingler un commentaire
+router.post("/:id/comments/:commentId/pin", postsController.togglePinComment);
 
 // POST /api/posts/:id/comments/:commentId/reply - Répondre à un commentaire
 router.post("/:id/comments/:commentId/reply", postsController.replyToComment);
 
 // POST /api/posts/:id/comments/:commentId/like - Liker un commentaire
 router.post("/:id/comments/:commentId/like", postsController.likeComment);
+
+// PUT /api/posts/:id/comments/:commentId - Modifier un commentaire
+router.put("/:id/comments/:commentId", postsController.updateComment);
+
+// DELETE /api/posts/:id/comments/:commentId - Supprimer un commentaire
+router.delete("/:id/comments/:commentId", postsController.deleteComment);
+
+// GET /api/posts/:id/comments - Récupérer les commentaires d'un post
+router.get("/:id/comments", postsController.getComments);
+
+// POST /api/posts/:id/comments - Ajouter un commentaire
+router.post("/:id/comments", postsController.addComment);
+
+// POST /api/posts/:id/toggle-comments - Désactiver/Activer les commentaires
+router.post("/:id/toggle-comments", postsController.toggleCommentsDisabled);
 
 module.exports = router;

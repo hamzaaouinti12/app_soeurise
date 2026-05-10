@@ -79,6 +79,17 @@ const memberIdSchema = Joi.object({
     }),
 });
 
+/**
+ * POST /api/community/groups/:id/messages
+ */
+const sendMessageSchema = Joi.object({
+    text: Joi.string().trim().min(1).max(2000).required().messages({
+        "any.required": "Le texte du message est requis",
+        "string.empty": "Le message ne peut pas être vide",
+        "string.max": "Le message ne peut pas dépasser 2000 caractères",
+    }),
+});
+
 module.exports = {
     createGroupSchema,
     listPublicSchema,
@@ -87,4 +98,5 @@ module.exports = {
     addMemberSchema,
     updateMemberSchema,
     memberIdSchema,
+    sendMessageSchema,
 };

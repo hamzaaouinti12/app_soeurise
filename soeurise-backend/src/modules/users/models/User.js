@@ -18,6 +18,24 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ["user", "admin", "staff"], default: "user" },
     isActive: { type: Boolean, default: true },
 
+    // Compte public : tout le monde peut voir vos posts hors communautés et suivre directement.
+    // Compte privé : vos posts hors communautés sont visibles uniquement par vos abonnés acceptés ;
+    // les autres envoient une demande à accepter/refuser.
+    accountPrivacy: {
+      type: String,
+      enum: ["public", "private"],
+      default: "public",
+      index: true,
+    },
+
+    // Demandes d'abonnement reçues (utilisateurs qui veulent suivre ce compte privé)
+    pendingFollowRequests: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
     // Following / Followers
     following: [
       {
@@ -26,6 +44,14 @@ const userSchema = new mongoose.Schema(
       },
     ],
     followers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
+    // Utilisateurs bloqués
+    blockedUsers: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
@@ -46,9 +72,13 @@ userSchema.methods.toPublic = function () {
     avatarUrl: this.avatarUrl,
     role: this.role,
     isActive: this.isActive,
+    accountPrivacy: this.accountPrivacy || "public",
     createdAt: this.createdAt,
     followingCount: this.following ? this.following.length : 0,
     followersCount: this.followers ? this.followers.length : 0,
+    pendingIncomingFollowRequestsCount: this.pendingFollowRequests
+      ? this.pendingFollowRequests.length
+      : 0,
   };
 };
 
