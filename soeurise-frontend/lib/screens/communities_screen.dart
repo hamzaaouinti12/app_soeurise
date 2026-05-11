@@ -80,6 +80,126 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
     }
   }
 
+  Future<void> _showCreateGroupSheet() async {
+    final nameController = TextEditingController();
+    final descController = TextEditingController();
+    bool isPublic = true;
+    bool isSubmitting = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(AppBorderRadius.xxl),
+                    topRight: Radius.circular(AppBorderRadius.xxl),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.beigeDark,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text('Creer un groupe', style: AppTextStyles.headline3),
+                    const SizedBox(height: 16),
+                    GlassTextField(
+                      controller: nameController,
+                      label: 'Nom du groupe',
+                    ),
+                    const SizedBox(height: 12),
+                    GlassTextField(
+                      controller: descController,
+                      label: 'Description',
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Groupe public',
+                            style: AppTextStyles.bodyMedium,
+                          ),
+                        ),
+                        Switch(
+                          value: isPublic,
+                          activeThumbColor: AppColors.primary,
+                          onChanged: (val) => setState(() => isPublic = val),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    GlassButton(
+                      label: 'Creer',
+                      isLoading: isSubmitting,
+                      onPressed: () async {
+                        if (isSubmitting) return;
+                        final name = nameController.text.trim();
+                        final desc = descController.text.trim();
+                        if (name.isEmpty || desc.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Veuillez remplir tous les champs')),
+                          );
+                          return;
+                        }
+                        setState(() => isSubmitting = true);
+                        final created = await CommunityService.instance.createGroup(
+                          name: name,
+                          description: desc,
+                          isPublic: isPublic,
+                        );
+                        setState(() => isSubmitting = false);
+
+                        if (!context.mounted) return;
+                        if (created != null) {
+                          Navigator.pop(context);
+                          await _loadCommunities();
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Groupe cree avec succes'),
+                              backgroundColor: AppColors.successColor,
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Erreur lors de la creation du groupe'),
+                              backgroundColor: AppColors.errorColor,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,9 +223,20 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                             onPressed: () => Navigator.pop(context),
                           ),
                         ),
-                      Text(
-                        'Communautés',
-                        style: AppTextStyles.headline1,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Communautes',
+                              style: AppTextStyles.headline1,
+                            ),
+                          ),
+                          GlassButton(
+                            label: 'Creer',
+                            width: 90,
+                            onPressed: _showCreateGroupSheet,
+                          ),
+                        ],
                       ),
                     ],
                   ),

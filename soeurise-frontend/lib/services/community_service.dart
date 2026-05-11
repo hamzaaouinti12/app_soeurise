@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../constants.dart';
 import '../models/models.dart';
 import 'api_client.dart';
 import 'profile_service.dart';
@@ -9,6 +11,10 @@ class ChatMessage {
   final String sender;
   final String senderAvatar;
   final String text;
+  final String type;
+  final String mediaUrl;
+  final String mediaMime;
+  final int? audioDurationMs;
   final DateTime timestamp;
 
   ChatMessage({
@@ -16,6 +22,10 @@ class ChatMessage {
     required this.sender,
     this.senderAvatar = '',
     required this.text,
+    this.type = 'text',
+    this.mediaUrl = '',
+    this.mediaMime = '',
+    this.audioDurationMs,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
 
@@ -24,6 +34,10 @@ class ChatMessage {
         'sender': sender,
         'senderAvatar': senderAvatar,
         'text': text,
+      'type': type,
+      'mediaUrl': mediaUrl,
+      'mediaMime': mediaMime,
+      'audioDurationMs': audioDurationMs,
         'timestamp': timestamp.millisecondsSinceEpoch,
       };
 
@@ -38,11 +52,19 @@ class ChatMessage {
       parsedDate = DateTime.now();
     }
 
+    final rawMedia = json['mediaUrl']?.toString() ?? '';
+
     return ChatMessage(
       senderId: json['senderId']?.toString() ?? '',
       sender: json['sender']?.toString() ?? 'Inconnu',
       senderAvatar: json['senderAvatar']?.toString() ?? '',
       text: json['text']?.toString() ?? '',
+      type: json['type']?.toString() ?? 'text',
+      mediaUrl: rawMedia.isNotEmpty ? ApiConfig.uploadsUrl(rawMedia) : '',
+      mediaMime: json['mediaMime']?.toString() ?? '',
+      audioDurationMs: json['audioDurationMs'] is int
+          ? json['audioDurationMs'] as int
+          : int.tryParse(json['audioDurationMs']?.toString() ?? ''),
       timestamp: parsedDate,
     );
   }
@@ -147,6 +169,30 @@ class CommunityService {
     }
   }
 
+  /// Create a new community group.
+  Future<Community?> createGroup({
+    required String name,
+    required String description,
+    bool isPublic = true,
+  }) async {
+    try {
+      final res = await _api.post('/community/groups', {
+        'name': name,
+        'description': description,
+        'isPublic': isPublic,
+      });
+      if (res.success && res.data != null) {
+        final raw = res.data!['group'] ?? res.data!['community'] ?? res.data;
+        if (raw is Map<String, dynamic>) {
+          return Community.fromJson(raw);
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Check membership status for the current user.
   Future<String> getMembershipStatus(String groupId) async {
     try {
@@ -217,13 +263,59 @@ class CommunityService {
     }
   }
 
+  /// Send a media message to the backend
+  Future<bool> sendMediaMessage(
+    String communityId,
+    File file, {
+    String? text,
+    int? audioDurationMs,
+  }) async {
+    try {
+      final fields = <String, String>{};
+      if (text != null && text.trim().isNotEmpty) {
+        fields['text'] = text.trim();
+      }
+      if (audioDurationMs != null) {
+        fields['audioDurationMs'] = audioDurationMs.toString();
+      }
+
+      final res = await _api.multipartRequest(
+        'POST',
+        '/community/groups/$communityId/messages',
+        fields: fields,
+        fileField: 'media',
+        filePath: file.path,
+      );
+      if (res.success && res.data != null) {
+        final newMsg = ChatMessage.fromJson(
+          res.data!['message'] as Map<String, dynamic>,
+        );
+        final notifier = messagesFor(communityId);
+        final updated = List<ChatMessage>.from(notifier.value)..add(newMsg);
+        notifier.value = updated;
+        return true;
+      }
+      debugPrint('Failed to send media: ${res.errorMessage}');
+      return false;
+    } catch (e) {
+      debugPrint('Error sending media: $e');
+      return false;
+    }
+  }
+
   /// Add a message received from socket
   void addMessageFromSocket(String communityId, Map<String, dynamic> data) {
     final newMsg = ChatMessage.fromJson(data);
     final notifier = messagesFor(communityId);
     
     // Check if message already exists (to avoid duplicates from own sent messages)
-    if (notifier.value.any((m) => m.text == newMsg.text && m.senderId == newMsg.senderId && (m.timestamp.difference(newMsg.timestamp).inSeconds.abs() < 5))) {
+    if (notifier.value.any(
+      (m) =>
+          m.senderId == newMsg.senderId &&
+          m.text == newMsg.text &&
+          m.mediaUrl == newMsg.mediaUrl &&
+          (m.timestamp.difference(newMsg.timestamp).inSeconds.abs() < 5),
+    )) {
       return;
     }
     

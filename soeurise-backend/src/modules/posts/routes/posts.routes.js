@@ -11,6 +11,12 @@ router.use(requireAuth);
 // GET /api/posts - Récupérer le fil d'actualité global ou par communauté
 router.get("/", postsController.getFeed);
 
+// GET /api/posts/user/:userId - Récupérer les publications d'un utilisateur
+router.get("/user/:userId", postsController.getUserPosts);
+
+// GET /api/posts/saved - Récupérer les publications sauvegardées
+router.get("/saved", postsController.getSavedPosts);
+
 // GET /api/posts/subscriptions - Fil d'actualité des abonnements
 router.get("/subscriptions", postsController.getSubscriptionFeed);
 
@@ -22,6 +28,18 @@ router.post("/:id/like", postsController.toggleLike);
 
 // POST /api/posts/:id/share - Partager un post
 router.post("/:id/share", postsController.sharePost);
+
+// DELETE /api/posts/:id - Supprimer un post
+router.delete("/:id", postsController.deletePost);
+
+// PUT /api/posts/:id - Modifier un post
+router.put("/:id", postsController.updatePost);
+
+// POST /api/posts/:id/pin - Epingler/Desepingler un post
+router.post("/:id/pin", postsController.togglePinPost);
+
+// POST /api/posts/:id/save - Sauvegarder/retirer une publication
+router.post("/:id/save", postsController.toggleSave);
 
 // POST /api/posts/:id/comments/:commentId/hide - Masquer/Afficher un commentaire
 router.post("/:id/comments/:commentId/hide", postsController.toggleHideComment);

@@ -170,9 +170,11 @@ async function deleteAvatar(req, res, next) {
 async function getMyFollowRequests(req, res, next) {
     try {
         const users = await usersService.listIncomingFollowRequests(req.user._id);
+        const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
+        const sliced = Number.isFinite(limit) && limit > 0 ? users.slice(0, limit) : users;
         res.json({
             success: true,
-            data: { requests: users },
+            data: { requests: sliced, total: users.length },
         });
     } catch (err) {
         next(err);
@@ -253,6 +255,55 @@ async function getMyFollowers(req, res, next) {
 }
 
 /**
+ * GET /api/users/me/following
+ * Get list of following for current user
+ */
+async function getMyFollowing(req, res, next) {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = req.query.limit ? parseInt(req.query.limit, 10) : 20;
+        const skip = (page - 1) * limit;
+
+        const user = await User.findById(req.user._id)
+            .populate({
+                path: "following",
+                select: "id firstName lastName username avatarUrl accountPrivacy",
+                skip,
+                limit,
+            });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: "Utilisateur non trouvé" });
+        }
+
+        const following = (user.following || []).map((f) => ({
+            id: f._id,
+            firstName: f.firstName,
+            lastName: f.lastName,
+            username: f.username,
+            email: "",
+            avatarUrl: f.avatarUrl,
+            role: "user",
+            isActive: true,
+            followingCount: 0,
+            followersCount: 0,
+            isFollowing: false,
+            accountPrivacy: f.accountPrivacy || "public",
+            followRequestSent: false,
+            canViewContent: true,
+        }));
+
+        res.json({
+            success: true,
+            following,
+            total: user.following?.length || 0,
+        });
+    } catch (err) {
+        next(err);
+    }
+}
+
+/**
  * GET /api/users/:userId/followers
  * Get list of followers for a specific user (public profile)
  */
@@ -309,6 +360,67 @@ async function getUserFollowers(req, res, next) {
             success: true,
             followers,
             total: targetUser.followers?.length || 0,
+        });
+    } catch (err) {
+        next(err);
+    }
+}
+
+/**
+ * GET /api/users/:userId/following
+ * Get list of following for a specific user (public profile)
+ */
+async function getUserFollowing(req, res, next) {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
+
+        const targetUser = await User.findById(req.params.userId)
+            .populate({
+                path: "following",
+                select: "id firstName lastName username avatarUrl accountPrivacy",
+                skip,
+                limit,
+            });
+
+        if (!targetUser || !targetUser.isActive) {
+            return res.status(404).json({ success: false, message: "Utilisateur non trouvé" });
+        }
+
+        const viewer = req.user;
+        const isSelf = viewer && viewer._id.toString() === targetUser._id.toString();
+        const isFollowing = viewer ? viewer.following.some((id) => id.toString() === targetUser._id.toString()) : false;
+        const isPrivate = targetUser.accountPrivacy === "private";
+
+        if (isPrivate && !isSelf && !isFollowing) {
+            return res.status(403).json({
+                success: false,
+                message: "Ce compte est privé. Les abonnements de ce compte ne sont pas visibles.",
+            });
+        }
+
+        const following = (targetUser.following || []).map((f) => ({
+            id: f._id,
+            firstName: f.firstName,
+            lastName: f.lastName,
+            username: f.username,
+            email: "",
+            avatarUrl: f.avatarUrl,
+            role: "user",
+            isActive: true,
+            followingCount: 0,
+            followersCount: 0,
+            isFollowing: false,
+            accountPrivacy: f.accountPrivacy || "public",
+            followRequestSent: false,
+            canViewContent: true,
+        }));
+
+        res.json({
+            success: true,
+            following,
+            total: targetUser.following?.length || 0,
         });
     } catch (err) {
         next(err);
@@ -374,7 +486,9 @@ module.exports = {
     acceptFollowRequest,
     declineFollowRequest,
     getMyFollowers,
+    getMyFollowing,
     getUserFollowers,
+    getUserFollowing,
     blockUser,
     unblockUser,
     searchUsers,

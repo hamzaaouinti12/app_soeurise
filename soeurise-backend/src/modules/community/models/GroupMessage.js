@@ -25,12 +25,19 @@ const groupMessageSchema = new mongoose.Schema(
 
 // Method to return public data
 groupMessageSchema.methods.toPublic = function () {
+    const senderDoc = this.senderId && this.senderId._id ? this.senderId : null;
+    const senderId = senderDoc ? senderDoc._id.toString() : this.senderId.toString();
+    const firstName = senderDoc?.firstName || "";
+    const lastName = senderDoc?.lastName || "";
+    const username = senderDoc?.username || "";
+    const displayName = `${firstName} ${lastName}`.trim() || username || "Inconnu";
+
     return {
         id: this._id,
         groupId: this.groupId,
-        senderId: this.senderId._id ? this.senderId._id : this.senderId,
-        sender: this.senderId.username ? this.senderId.username : "Inconnu",
-        senderAvatar: this.senderId.avatarUrl ? this.senderId.avatarUrl : "",
+        senderId,
+        sender: displayName,
+        senderAvatar: senderDoc?.avatarUrl || "",
         text: this.text,
         timestamp: this.createdAt,
     };

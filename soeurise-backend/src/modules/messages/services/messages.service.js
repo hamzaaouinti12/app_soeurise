@@ -2,11 +2,56 @@ const PrivateMessage = require("../models/PrivateMessage");
 const notificationsService = require("../../notifications/services/notifications.service");
 const { sendToUser } = require("../../../utils/socket");
 
-async function sendMessage(senderId, recipientId, text, senderUsername) {
+function normalizeUser(doc) {
+  if (!doc) return null;
+  if (typeof doc.toPublic === "function") return doc.toPublic();
+  return {
+    id: doc._id ? doc._id.toString() : doc.toString(),
+    firstName: doc.firstName || "",
+    lastName: doc.lastName || "",
+    username: doc.username || "",
+    avatarUrl: doc.avatarUrl || "",
+    accountPrivacy: doc.accountPrivacy || "public",
+  };
+}
+
+async function sendMessage(senderId, recipientId, text, senderUsername, file, options = {}) {
+  const cleanText = text ? text.toString().trim() : "";
+  const hasFile = !!file;
+
+  if (!cleanText && !hasFile) {
+    const err = new Error("Message vide");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  let type = "text";
+  let mediaUrl = "";
+  let mediaMime = "";
+  let audioDurationMs = options.audioDurationMs ?? null;
+
+  if (hasFile) {
+    mediaUrl = `/uploads/messages/${file.filename}`;
+    mediaMime = file.mimetype || "";
+    if (mediaMime.startsWith("image/")) {
+      type = "image";
+    } else if (mediaMime.startsWith("audio/")) {
+      type = "audio";
+    } else {
+      const err = new Error("Type de media non supporte");
+      err.statusCode = 400;
+      throw err;
+    }
+  }
+
   const message = await PrivateMessage.create({
     sender: senderId,
     recipient: recipientId,
-    text,
+    text: cleanText,
+    type,
+    mediaUrl,
+    mediaMime,
+    audioDurationMs,
   });
 
   const populatedMsg = await PrivateMessage.findById(message._id)
@@ -38,31 +83,97 @@ async function getChatHistory(userId, otherUserId, limit = 50) {
   })
     .sort({ createdAt: -1 })
     .limit(limit)
-    .populate("sender", "firstName lastName username avatarUrl");
+    .populate("sender", "firstName lastName username avatarUrl")
+    .populate("recipient", "firstName lastName username avatarUrl");
 
   return messages.reverse().map((m) => m.toPublic());
 }
 
 async function getConversations(userId) {
-    // This is a simplified version, it gets recent unique contacts
-    const messages = await PrivateMessage.find({
-        $or: [{ sender: userId }, { recipient: userId }]
-    }).sort({ createdAt: -1 });
+  const messages = await PrivateMessage.find({
+    $or: [{ sender: userId }, { recipient: userId }],
+  })
+    .sort({ createdAt: -1 })
+    .populate("sender", "firstName lastName username avatarUrl")
+    .populate("recipient", "firstName lastName username avatarUrl");
 
-    const contacts = new Map();
-    messages.forEach(m => {
-        const otherId = m.sender.toString() === userId.toString() ? m.recipient.toString() : m.sender.toString();
-        if (!contacts.has(otherId)) {
-            contacts.set(otherId, m);
-        }
+  const unreadAgg = await PrivateMessage.aggregate([
+    { $match: { recipient: userId, isRead: false } },
+    { $group: { _id: "$sender", count: { $sum: 1 } } },
+  ]);
+  const unreadMap = new Map(
+    unreadAgg.map((u) => [u._id.toString(), u.count])
+  );
+
+  const conversations = new Map();
+  messages.forEach((m) => {
+    const senderId = m.sender && m.sender._id ? m.sender._id.toString() : m.sender.toString();
+    const recipientId = m.recipient && m.recipient._id ? m.recipient._id.toString() : m.recipient.toString();
+    const otherUser = senderId === userId.toString() ? m.recipient : m.sender;
+    const otherUserId = senderId === userId.toString() ? recipientId : senderId;
+    if (!conversations.has(otherUserId)) {
+      conversations.set(otherUserId, {
+        user: normalizeUser(otherUser),
+        lastMessage: m.toPublic(),
+        unreadCount: unreadMap.get(otherUserId) || 0,
+      });
+    }
+  });
+
+  return Array.from(conversations.values());
+}
+
+async function markChatRead(userId, otherUserId) {
+  const now = new Date();
+  const result = await PrivateMessage.updateMany(
+    { sender: otherUserId, recipient: userId, isRead: false },
+    { isRead: true, readAt: now }
+  );
+
+  if (result.modifiedCount && result.modifiedCount > 0) {
+    sendToUser(otherUserId, "private_messages_read", {
+      readerId: userId.toString(),
+      readAt: now,
     });
+  }
 
-    // We would normally populate these, but for brevity:
-    return Array.from(contacts.values());
+  return result.modifiedCount || 0;
+}
+
+async function deleteMessageForAll(messageId, userId) {
+  const message = await PrivateMessage.findById(messageId);
+  if (!message) {
+    const err = new Error("Message introuvable");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (message.sender.toString() !== userId.toString()) {
+    const err = new Error("Action non autorisee");
+    err.statusCode = 403;
+    throw err;
+  }
+
+  if (!message.deletedForAll) {
+    message.deletedForAll = true;
+    message.deletedAt = new Date();
+    await message.save();
+  }
+
+  sendToUser(message.recipient, "private_message_deleted", {
+    messageId: message._id.toString(),
+  });
+  sendToUser(message.sender, "private_message_deleted", {
+    messageId: message._id.toString(),
+  });
+
+  return message;
 }
 
 module.exports = {
   sendMessage,
   getChatHistory,
   getConversations,
+  markChatRead,
+  deleteMessageForAll,
 };

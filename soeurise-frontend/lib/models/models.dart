@@ -90,6 +90,7 @@ class Story {
   final DateTime expiresAt;
   final int viewsCount;
   final Map<String, int> reactionCounts;
+  final bool isViewed;
 
   Story({
     required this.id,
@@ -102,6 +103,7 @@ class Story {
     required this.expiresAt,
     this.viewsCount = 0,
     this.reactionCounts = const {},
+    this.isViewed = false,
   });
 
   bool get isVideo => mediaType == 'video';
@@ -140,6 +142,46 @@ class Story {
       viewsCount:
           json['viewsCount'] ?? (json['views'] as List<dynamic>?)?.length ?? 0,
       reactionCounts: reactionCounts,
+      isViewed: json['isViewed'] == true || json['viewed'] == true || json['hasViewed'] == true,
+    );
+  }
+}
+
+class StoryViewer {
+  final String id;
+  final String username;
+  final String fullName;
+  final String avatarUrl;
+  final DateTime? viewedAt;
+
+  StoryViewer({
+    required this.id,
+    required this.username,
+    required this.fullName,
+    required this.avatarUrl,
+    this.viewedAt,
+  });
+
+  String get displayName => fullName.isNotEmpty ? fullName : username;
+  String get avatarFullUrl => ApiConfig.uploadsUrl(avatarUrl);
+
+  factory StoryViewer.fromJson(Map<String, dynamic> json) {
+    final user = json['user'] as Map<String, dynamic>?;
+    final source = user ?? json;
+    final fName = source['firstName']?.toString() ?? '';
+    final lName = source['lastName']?.toString() ?? '';
+    final uName = source['username']?.toString() ?? '';
+    final name = ('$fName $lName').trim();
+
+    return StoryViewer(
+      id: source['id']?.toString() ?? source['_id']?.toString() ?? '',
+      username: uName,
+      fullName: name,
+      avatarUrl: source['avatarUrl']?.toString() ?? '',
+      viewedAt:
+          json['viewedAt'] != null
+              ? DateTime.tryParse(json['viewedAt'].toString())
+              : null,
     );
   }
 }
@@ -157,7 +199,9 @@ class Post {
   int comments;
   int shares;
   bool isLiked;
+  bool isSaved;
   bool commentsDisabled;
+  bool isPinned;
 
   Post({
     required this.id,
@@ -172,7 +216,9 @@ class Post {
     this.comments = 0,
     this.shares = 0,
     this.isLiked = false,
+    this.isSaved = false,
     this.commentsDisabled = false,
+    this.isPinned = false,
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -204,7 +250,9 @@ class Post {
       comments: json['commentsCount'] ?? 0,
       shares: json['sharesCount'] ?? 0,
       isLiked: json['isLiked'] ?? false,
+      isSaved: json['isSaved'] ?? false,
       commentsDisabled: json['commentsDisabled'] ?? false,
+      isPinned: json['isPinned'] ?? false,
     );
   }
 }
@@ -216,6 +264,7 @@ class Comment {
   final String authorAvatar;
   final String content;
   final DateTime createdAt;
+  final String? replyToId;
   int likesCount;
   bool isLiked;
   bool isHidden;
@@ -229,6 +278,7 @@ class Comment {
     this.authorAvatar = '',
     required this.content,
     required this.createdAt,
+    this.replyToId,
     this.likesCount = 0,
     this.isLiked = false,
     this.isHidden = false,
@@ -260,11 +310,129 @@ class Comment {
           json['createdAt'] != null
               ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
               : DateTime.now(),
+      replyToId: json['replyTo']?.toString(),
       likesCount: json['likesCount'] ?? likes.length,
       isLiked: json['isLiked'] ?? false,
       isHidden: json['isHidden'] ?? false,
       isPinned: json['isPinned'] ?? false,
       replies: repliesJson.map((r) => Comment.fromJson(r)).toList(),
+    );
+  }
+}
+
+class PrivateMessage {
+  final String id;
+  final String senderId;
+  final String recipientId;
+  final String type; // text | image | audio
+  final String text;
+  final String mediaUrl;
+  final String mediaMime;
+  final int? audioDurationMs;
+  final bool isRead;
+  final bool deletedForAll;
+  final DateTime createdAt;
+
+  PrivateMessage({
+    required this.id,
+    required this.senderId,
+    required this.recipientId,
+    required this.type,
+    required this.text,
+    required this.mediaUrl,
+    required this.mediaMime,
+    required this.audioDurationMs,
+    required this.isRead,
+    required this.deletedForAll,
+    required this.createdAt,
+  });
+
+  bool get hasMedia => mediaUrl.isNotEmpty;
+  bool get isDeleted => deletedForAll;
+
+  PrivateMessage copyWith({
+    String? text,
+    String? mediaUrl,
+    bool? isRead,
+    bool? deletedForAll,
+  }) {
+    return PrivateMessage(
+      id: id,
+      senderId: senderId,
+      recipientId: recipientId,
+      type: type,
+      text: text ?? this.text,
+      mediaUrl: mediaUrl ?? this.mediaUrl,
+      mediaMime: mediaMime,
+      audioDurationMs: audioDurationMs,
+      isRead: isRead ?? this.isRead,
+      deletedForAll: deletedForAll ?? this.deletedForAll,
+      createdAt: createdAt,
+    );
+  }
+
+  factory PrivateMessage.fromJson(Map<String, dynamic> json) {
+    final sender = json['sender'];
+    final recipient = json['recipient'];
+    final senderId =
+        json['senderId']?.toString() ?? sender?['id']?.toString() ?? sender?['_id']?.toString() ?? '';
+    final recipientId =
+        json['recipientId']?.toString() ?? recipient?['id']?.toString() ?? recipient?['_id']?.toString() ?? '';
+
+    final rawMedia = json['mediaUrl']?.toString() ?? '';
+    return PrivateMessage(
+      id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
+      senderId: senderId,
+      recipientId: recipientId,
+      type: json['type']?.toString() ?? 'text',
+      text: json['text']?.toString() ?? '',
+      mediaUrl: rawMedia.isNotEmpty ? ApiConfig.uploadsUrl(rawMedia) : '',
+      mediaMime: json['mediaMime']?.toString() ?? '',
+      audioDurationMs: json['audioDurationMs'] is int
+          ? json['audioDurationMs'] as int
+          : int.tryParse(json['audioDurationMs']?.toString() ?? ''),
+      isRead: json['isRead'] == true,
+      deletedForAll: json['deletedForAll'] == true,
+      createdAt:
+          json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
+              : DateTime.now(),
+    );
+  }
+}
+
+class Conversation {
+  final User user;
+  final PrivateMessage lastMessage;
+  final int unreadCount;
+
+  Conversation({
+    required this.user,
+    required this.lastMessage,
+    required this.unreadCount,
+  });
+
+  factory Conversation.fromJson(Map<String, dynamic> json) {
+    return Conversation(
+      user: User.fromJson(json['user'] as Map<String, dynamic>),
+      lastMessage: PrivateMessage.fromJson(
+        json['lastMessage'] as Map<String, dynamic>,
+      ),
+      unreadCount: json['unreadCount'] ?? 0,
+    );
+  }
+}
+
+class HashtagResult {
+  final String tag;
+  final int count;
+
+  HashtagResult({required this.tag, required this.count});
+
+  factory HashtagResult.fromJson(Map<String, dynamic> json) {
+    return HashtagResult(
+      tag: json['tag']?.toString() ?? '',
+      count: json['count'] ?? 0,
     );
   }
 }

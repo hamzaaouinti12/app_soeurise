@@ -5,6 +5,7 @@ import '../services.dart';
 import '../services/profile_service.dart';
 import 'login_page.dart';
 import 'privacy_settings_screen.dart';
+import 'subscriber_management_screen.dart';
 import 'blocked_users_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -118,6 +119,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 Icons.lock_rounded,
                                 'Mot de passe',
                                 onTap: () {},
+                              ),
+                              Divider(
+                                color: AppColors.beigeDark.withAlpha(40),
+                                height: 1,
+                              ),
+                              _navTile(
+                                Icons.people_alt_rounded,
+                                'Gestion des abonnes',
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const SubscriberManagementScreen(),
+                                    ),
+                                  );
+                                },
                               ),
                               Divider(
                                 color: AppColors.beigeDark.withAlpha(40),

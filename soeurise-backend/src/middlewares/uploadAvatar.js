@@ -20,9 +20,20 @@ const storage = multer.diskStorage({
 });
 
 function fileFilter(req, file, cb) {
-  const allowed = ["image/jpeg", "image/png", "image/webp"];
-  if (!allowed.includes(file.mimetype)) {
-    return cb(new Error("Format non supporté (jpg/png/webp uniquement)"));
+  const allowedMimes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/heic",
+    "image/heif",
+    "image/jpg",
+    "application/octet-stream",
+  ];
+  const allowedExts = [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"];
+  const ext = path.extname(file.originalname || "").toLowerCase();
+
+  if (!allowedMimes.includes(file.mimetype) && !allowedExts.includes(ext)) {
+    return cb(new Error("Format non supporte (jpg/png/webp/heic uniquement)"));
   }
   cb(null, true);
 }

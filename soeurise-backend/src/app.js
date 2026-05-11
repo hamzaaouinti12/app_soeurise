@@ -22,6 +22,8 @@ const eventsRoutes = require("./modules/events/routes/events.routes");
 const notificationRoutes = require("./modules/notifications/routes/notifications.routes");
 const messageRoutes = require("./modules/messages/routes/messages.routes");
 const storyRoutes = require("./modules/stories/routes/stories.routes");
+const searchRoutes = require("./modules/search/routes/search.routes");
+const reportRoutes = require("./modules/reports/routes/reports.routes");
 
 function createApp() {
   const app = express();
@@ -68,6 +70,8 @@ function createApp() {
   app.use("/api/notifications", notificationRoutes);
   app.use("/api/messages", messageRoutes);
   app.use("/api/stories", storyRoutes);
+  app.use("/api/search", searchRoutes);
+  app.use("/api/reports", reportRoutes);
 
   app.use(notFound);
   app.use(errorHandler);

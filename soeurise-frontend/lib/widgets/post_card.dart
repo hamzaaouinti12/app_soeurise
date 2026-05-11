@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../models/models.dart';
 import '../screens/user_profile_screen.dart';
+import '../screens/post_settings_screen.dart';
 import '../theme/glass_widgets.dart';
 import '../services/profile_service.dart';
 import '../services/post_service.dart';
@@ -21,9 +22,11 @@ class _PostCardState extends State<PostCard>
     with SingleTickerProviderStateMixin {
   late int likes;
   bool _isLiked = false;
+  bool _isSaved = false;
   bool _isFollowing = false;
   bool _followRequestSent = false;
   bool _isFollowBusy = false;
+  bool _isDeleted = false;
   late AnimationController _likeController;
   late Animation<double> _likeScale;
 
@@ -32,6 +35,7 @@ class _PostCardState extends State<PostCard>
     super.initState();
     likes = widget.post.likes;
     _isLiked = widget.post.isLiked;
+    _isSaved = widget.post.isSaved;
     _likeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -113,6 +117,16 @@ class _PostCardState extends State<PostCard>
     });
   }
 
+  Future<void> _toggleSave() async {
+    final ok = await PostService.instance.toggleSave(widget.post.id);
+    if (ok && mounted) {
+      setState(() {
+        _isSaved = !_isSaved;
+        widget.post.isSaved = _isSaved;
+      });
+    }
+  }
+
   void _toggleFollow() async {
     if (_isFollowBusy) return;
     setState(() => _isFollowBusy = true);
@@ -154,6 +168,157 @@ class _PostCardState extends State<PostCard>
     );
   }
 
+  Future<void> _deletePost() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer la publication'),
+        content: const Text('Voulez-vous vraiment supprimer cette publication ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    final ok = await PostService.instance.deletePost(widget.post.id);
+    if (ok && mounted) {
+      setState(() => _isDeleted = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Publication supprimée')),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors de la suppression')),
+      );
+    }
+  }
+
+  void _reportPost() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Signalement envoyé')),
+    );
+  }
+
+  void _showPostOptions() {
+    final isOwner =
+        widget.post.authorId == ProfileService.instance.profile.value.id;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 6),
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.beigeDark,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (isOwner) ...[
+                  ListTile(
+                    leading: const Icon(Icons.tune_rounded),
+                    title: const Text('Parametres du post'),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final deleted = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(
+                          builder: (_) => PostSettingsScreen(post: widget.post),
+                        ),
+                      );
+                      if (deleted == true && mounted) {
+                        setState(() => _isDeleted = true);
+                      }
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      widget.post.commentsDisabled
+                          ? Icons.comment_rounded
+                          : Icons.comments_disabled_rounded,
+                    ),
+                    title: Text(
+                      widget.post.commentsDisabled
+                          ? 'Activer les commentaires'
+                          : 'Desactiver les commentaires',
+                    ),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await PostService.instance.toggleCommentsDisabled(
+                        widget.post.id,
+                      );
+                      if (mounted) {
+                        setState(() {
+                          widget.post.commentsDisabled =
+                              !widget.post.commentsDisabled;
+                        });
+                      }
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline_rounded),
+                    title: const Text('Supprimer'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _deletePost();
+                    },
+                  ),
+                ] else ...[
+                  ListTile(
+                    leading: Icon(
+                      _isFollowing || _followRequestSent
+                          ? Icons.person_remove_rounded
+                          : Icons.person_add_rounded,
+                    ),
+                    title: Text(
+                      _isFollowing || _followRequestSent
+                          ? 'Ne plus suivre'
+                          : 'Suivre',
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _toggleFollow();
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.flag_outlined),
+                    title: const Text('Signaler'),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _reportPost();
+                    },
+                  ),
+                ],
+                const SizedBox(height: 6),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _openComments() {
     showModalBottomSheet(
       context: context,
@@ -162,9 +327,6 @@ class _PostCardState extends State<PostCard>
       builder:
           (ctx) => _CommentsSheet(
             post: widget.post,
-            onCommentAdded: () {
-              setState(() => widget.post.comments++);
-            },
             onCommentsCountChanged: (count) {
               setState(() => widget.post.comments = count);
             },
@@ -174,6 +336,7 @@ class _PostCardState extends State<PostCard>
 
   @override
   Widget build(BuildContext context) {
+    if (_isDeleted) return const SizedBox.shrink();
     return GlassCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -299,7 +462,13 @@ class _PostCardState extends State<PostCard>
                 ),
               ],
               const SizedBox(width: 8),
-              Icon(Icons.more_horiz_rounded, color: AppColors.textLight),
+              GestureDetector(
+                onTap: _showPostOptions,
+                child: const Icon(
+                  Icons.more_horiz_rounded,
+                  color: AppColors.textLight,
+                ),
+              ),
             ],
           ),
 
@@ -398,6 +567,14 @@ class _PostCardState extends State<PostCard>
                   '${widget.post.shares}',
                 ),
               ),
+              // Save
+              GestureDetector(
+                onTap: _toggleSave,
+                child: _actionItem(
+                  _isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                  '',
+                ),
+              ),
               // Notification bell
               GestureDetector(
                 onTap: () {},
@@ -446,12 +623,10 @@ class _PostCardState extends State<PostCard>
 
 class _CommentsSheet extends StatefulWidget {
   final Post post;
-  final VoidCallback onCommentAdded;
   final Function(int) onCommentsCountChanged;
 
   const _CommentsSheet({
     required this.post,
-    required this.onCommentAdded,
     required this.onCommentsCountChanged,
   });
 
@@ -463,6 +638,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
   final _commentController = TextEditingController();
   List<Comment> _comments = [];
   bool _isLoading = true;
+  String? _replyingToRootId;
   String? _replyingToId;
   String? _replyingToName;
 
@@ -489,6 +665,14 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     return total;
   }
 
+  int _countAllComments() {
+    int total = 0;
+    for (final c in _comments) {
+      total += 1 + c.replies.length;
+    }
+    return total;
+  }
+
   Future<void> _loadComments() async {
     final comments = await PostService.instance.fetchComments(widget.post.id);
     if (mounted) {
@@ -505,22 +689,28 @@ class _CommentsSheetState extends State<_CommentsSheet> {
 
     _commentController.clear();
 
-    if (_replyingToId != null) {
+    if (_replyingToRootId != null) {
       final reply = await PostService.instance.replyToComment(
         widget.post.id,
-        _replyingToId!,
+        _replyingToRootId!,
         text,
+        replyToId:
+            (_replyingToId != null && _replyingToId != _replyingToRootId)
+                ? _replyingToId
+                : null,
       );
       if (reply != null) {
         setState(() {
           final parent = _comments.firstWhere(
-            (c) => c.id == _replyingToId,
+            (c) => c.id == _replyingToRootId,
             orElse: () => _comments.first,
           );
           parent.replies = [...parent.replies, reply];
+          _replyingToRootId = null;
           _replyingToId = null;
           _replyingToName = null;
         });
+        widget.onCommentsCountChanged(_countAllComments());
       }
     } else {
       final comment = await PostService.instance.addComment(
@@ -529,7 +719,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
       );
       if (comment != null) {
         setState(() => _comments.insert(0, comment));
-        widget.onCommentAdded();
+        widget.onCommentsCountChanged(_countAllComments());
       }
     }
   }
@@ -547,9 +737,10 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     }
   }
 
-  void _setReplyTarget(Comment comment) {
+  void _setReplyTarget(Comment comment, {required String rootId}) {
     if (widget.post.commentsDisabled) return;
     setState(() {
+      _replyingToRootId = rootId;
       _replyingToId = comment.id;
       _replyingToName = comment.authorName;
     });
@@ -575,7 +766,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
             parent.replies.removeWhere((r) => r.id == comment.id);
           }
         }
-        widget.onCommentsCountChanged(_comments.length);
+        widget.onCommentsCountChanged(_countAllComments());
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Commentaire supprimé'), backgroundColor: AppColors.successColor),
@@ -813,7 +1004,11 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                       itemCount: _comments.length,
                       itemBuilder:
                           (ctx, i) =>
-                              _buildCommentTile(_comments[i], isReply: false),
+                              _buildCommentTile(
+                                _comments[i],
+                                isReply: false,
+                                rootCommentId: _comments[i].id,
+                              ),
                     ),
           ),
 
@@ -834,6 +1029,7 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                   GestureDetector(
                     onTap:
                         () => setState(() {
+                          _replyingToRootId = null;
                           _replyingToId = null;
                           _replyingToName = null;
                         }),
@@ -937,15 +1133,24 @@ class _CommentsSheetState extends State<_CommentsSheet> {
     );
   }
 
-  Widget _buildCommentTile(Comment comment, {required bool isReply}) {
+  Widget _buildCommentTile(
+    Comment comment, {
+    required bool isReply,
+    required String rootCommentId,
+    Map<String, String>? replyNameMap,
+  }) {
     final currentUserId = ProfileService.instance.profile.value.id;
     final isPostOwner = widget.post.authorId == currentUserId;
     final isCommentAuthor = comment.authorId == currentUserId;
+    final replyToName = comment.replyToId != null
+      ? (replyNameMap?[comment.replyToId] ?? 'Unknown User')
+      : null;
+    final leftPadding = isReply ? (comment.replyToId != null ? 56.0 : 40.0) : 0.0;
 
     return Opacity(
       opacity: comment.isHidden ? 0.5 : 1.0,
       child: Padding(
-        padding: EdgeInsets.only(left: isReply ? 40 : 0, bottom: 12),
+        padding: EdgeInsets.only(left: leftPadding, bottom: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -986,6 +1191,13 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                               fontSize: isReply ? 12 : 13,
                             ),
                           ),
+                          if (replyToName != null) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '-> $replyToName',
+                              style: AppTextStyles.caption.copyWith(fontSize: 10),
+                            ),
+                          ],
                           const SizedBox(width: 8),
                           Text(
                             _getTimeAgo(comment.createdAt),
@@ -1075,10 +1287,11 @@ class _CommentsSheetState extends State<_CommentsSheet> {
                               ],
                             ),
                           ),
-                          if (!widget.post.commentsDisabled && !isReply) ...[
+                          if (!widget.post.commentsDisabled) ...[
                             const SizedBox(width: 16),
                             GestureDetector(
-                              onTap: () => _setReplyTarget(comment),
+                              onTap: () =>
+                                  _setReplyTarget(comment, rootId: rootCommentId),
                               child: Text(
                                 'Répondre',
                                 style: AppTextStyles.caption.copyWith(
@@ -1098,9 +1311,21 @@ class _CommentsSheetState extends State<_CommentsSheet> {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Column(
-                  children: comment.replies
-                      .map((r) => _buildCommentTile(r, isReply: true))
-                      .toList(),
+                  children: () {
+                    final replyNameMap = {
+                      for (final r in comment.replies) r.id: r.authorName,
+                    };
+                    return comment.replies
+                        .map(
+                          (r) => _buildCommentTile(
+                            r,
+                            isReply: true,
+                            rootCommentId: rootCommentId,
+                            replyNameMap: replyNameMap,
+                          ),
+                        )
+                        .toList();
+                  }(),
                 ),
               ),
           ],

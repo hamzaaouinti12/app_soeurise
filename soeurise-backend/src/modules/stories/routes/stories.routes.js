@@ -9,6 +9,7 @@ router.use(requireAuth);
 
 router.get("/", storiesController.getActiveStories);
 router.get("/user/:userId", storiesController.getUserStories);
+router.get("/:id/views", storiesController.getStoryViews);
 router.post("/", uploadStoryMedia.single("media"), storiesController.createStory);
 router.post("/:id/view", storiesController.addView);
 router.post("/:id/reactions", storiesController.reactToStory);

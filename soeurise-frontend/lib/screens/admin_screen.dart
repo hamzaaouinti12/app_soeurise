@@ -696,11 +696,16 @@ class _AdminScreenState extends State<AdminScreen>
                       imageUrl: imageUrlController.text,
                     );
 
-                    if (success && ctx.mounted) {
+                    if (!ctx.mounted) return;
+                    if (success) {
                       Navigator.pop(ctx);
                       _loadEvents();
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Événement créé !'), backgroundColor: AppColors.successColor),
+                        const SnackBar(
+                          content: Text('Événement créé !'),
+                          backgroundColor: AppColors.successColor,
+                        ),
                       );
                     }
                   },

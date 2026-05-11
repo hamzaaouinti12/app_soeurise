@@ -429,7 +429,9 @@ class _EventsScreenState extends State<EventsScreen> {
                   label: 'Créer l\'événement',
                   onPressed: () async {
                     if (titleController.text.isEmpty ||
-                        locationController.text.isEmpty) return;
+                        locationController.text.isEmpty) {
+                      return;
+                    }
 
                     final success = await EventService.instance.createEvent(
                       title: titleController.text,
@@ -439,13 +441,16 @@ class _EventsScreenState extends State<EventsScreen> {
                       imageUrl: imageUrlController.text,
                     );
 
-                    if (success && ctx.mounted) {
+                    if (!ctx.mounted) return;
+                    if (success) {
                       Navigator.pop(ctx);
                       _loadEvents();
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Événement créé !'),
-                            backgroundColor: AppColors.successColor),
+                          content: Text('Événement créé !'),
+                          backgroundColor: AppColors.successColor,
+                        ),
                       );
                     }
                   },

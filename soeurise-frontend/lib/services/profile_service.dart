@@ -479,6 +479,30 @@ class ProfileService {
     }
   }
 
+  /// Fetch list of following for current user.
+  Future<List<User>> fetchMyFollowing({int page = 1, int limit = 20}) async {
+    try {
+      final res = await _api.get('/users/me/following?page=$page&limit=$limit');
+      if (!res.success || res.data == null) return [];
+      final list = res.data!['following'] as List? ?? res.data as List? ?? [];
+      return list.map((e) => User.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Fetch list of following for another user.
+  Future<List<User>> fetchUserFollowing(String userId, {int page = 1, int limit = 20}) async {
+    try {
+      final res = await _api.get('/users/$userId/following?page=$page&limit=$limit');
+      if (!res.success || res.data == null) return [];
+      final list = res.data!['following'] as List? ?? res.data as List? ?? [];
+      return list.map((e) => User.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   Future<bool> acceptFollowRequest(String requesterUserId) async {
     try {
       final res = await _api.post(

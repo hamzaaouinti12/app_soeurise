@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 // ─── App Colors – Soft Pink & Beige Premium Palette ───
 class AppColors {
-  // Primary pinks
-  static const Color primary = Color(0xFFE8758F);      // Warm rose
-  static const Color primaryLight = Color(0xFFF4A0B5);  // Soft pink
-  static const Color primaryDark = Color(0xFFD4536E);   // Deep rose
+  // Primary red
+  static const Color primary = Color(0xFFCD3D4B);      // Crimson
+  static const Color primaryLight = Color(0xFFE36B78);  // Soft crimson
+  static const Color primaryDark = Color(0xFFB32D3C);   // Deep crimson
 
   // Beige & neutrals
   static const Color beige = Color(0xFFF5E6D3);         // Warm beige
@@ -32,7 +32,7 @@ class AppColors {
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFE8758F), Color(0xFFF4A0B5)],
+    colors: [Color(0xFFCD3D4B), Color(0xFFE36B78)],
   );
 
   static const LinearGradient backgroundGradient = LinearGradient(
@@ -50,7 +50,7 @@ class AppColors {
   static const LinearGradient accentGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFE8758F), Color(0xFFD4536E)],
+    colors: [Color(0xFFCD3D4B), Color(0xFFB32D3C)],
   );
 }
 

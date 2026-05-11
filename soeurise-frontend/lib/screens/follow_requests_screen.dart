@@ -27,7 +27,8 @@ class _FollowRequestsScreenState extends State<FollowRequestsScreen> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final list = await ProfileService.instance.fetchIncomingFollowRequests();
-    if (mounted) setState(() {
+    if (!mounted) return;
+    setState(() {
       _requests = list;
       _loading = false;
     });

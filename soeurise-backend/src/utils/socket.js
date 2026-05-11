@@ -70,6 +70,22 @@ function initSocket(server) {
       socket.leave(room);
       console.log(`[Socket] Socket ${socket.id} left room ${room}`);
     });
+
+    socket.on("private_typing", (payload) => {
+      const toUserId = payload?.toUserId;
+      if (!toUserId) return;
+      sendToUser(toUserId, "private_typing", {
+        fromUserId: userId,
+      });
+    });
+
+    socket.on("private_stop_typing", (payload) => {
+      const toUserId = payload?.toUserId;
+      if (!toUserId) return;
+      sendToUser(toUserId, "private_stop_typing", {
+        fromUserId: userId,
+      });
+    });
   });
 
   return io;

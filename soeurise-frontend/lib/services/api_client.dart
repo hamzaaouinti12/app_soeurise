@@ -112,12 +112,20 @@ class ApiClient {
         String type = 'application';
         String subtype = rawExt;
 
-        final imageExts = ['jpg', 'jpeg', 'png', 'webp'];
+        final imageExts = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
         final videoExts = ['mp4', 'mov', 'webm'];
 
         if (imageExts.contains(rawExt)) {
           type = 'image';
-          subtype = rawExt == 'jpg' ? 'jpeg' : rawExt;
+          if (rawExt == 'jpg') {
+            subtype = 'jpeg';
+          } else if (rawExt == 'heic') {
+            subtype = 'heic';
+          } else if (rawExt == 'heif') {
+            subtype = 'heif';
+          } else {
+            subtype = rawExt;
+          }
         } else if (videoExts.contains(rawExt)) {
           type = 'video';
           subtype = rawExt == 'mov' ? 'quicktime' : rawExt;

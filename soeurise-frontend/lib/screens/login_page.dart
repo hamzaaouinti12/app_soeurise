@@ -88,8 +88,8 @@ class _LoginPageState extends State<LoginPage>
                   FadeSlideIn(
                     delay: Duration.zero,
                     child: Container(
-                      width: 90,
-                      height: 90,
+                      width: 110,
+                      height: 110,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: AppColors.primaryGradient,
@@ -101,15 +101,12 @@ class _LoginPageState extends State<LoginPage>
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Text(
-                          'S',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 40,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
+                      child: Center(
+                        child: Image.asset(
+                          'logo/S.png',
+                          width: 70,
+                          height: 70,
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
@@ -120,19 +117,11 @@ class _LoginPageState extends State<LoginPage>
                   // Title
                   FadeSlideIn(
                     delay: const Duration(milliseconds: 100),
-                    child: ShaderMask(
-                      shaderCallback: (bounds) =>
-                          AppColors.accentGradient.createShader(bounds),
-                      child: const Text(
-                        'Soeurise',
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 32,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
+                    child: Image.asset(
+                      'logo/S.png',
+                      width: 160,
+                      height: 160,
+                      fit: BoxFit.contain,
                     ),
                   ),
 

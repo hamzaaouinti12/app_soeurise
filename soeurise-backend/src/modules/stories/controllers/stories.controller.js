@@ -4,6 +4,14 @@ const { canViewerSeeAuthorGlobalContent } = require("../../../utils/privacy");
 
 const allowedReactions = ["❤️", "🔥", "👍", "👏", "😮"];
 
+function mapStoryWithViewFlag(story, viewerId) {
+  const data = story.toObject({ virtuals: true });
+  data.isViewed = Array.isArray(story.views)
+    ? story.views.some((view) => view.user.toString() === viewerId)
+    : false;
+  return data;
+}
+
 exports.getActiveStories = async (req, res, next) => {
   try {
     const currentUser = await User.findById(req.user._id).select("following");
@@ -19,7 +27,11 @@ exports.getActiveStories = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .populate("author", "firstName lastName username avatarUrl");
 
-    res.json({ success: true, data: stories });
+    const data = stories.map((story) =>
+      mapStoryWithViewFlag(story, req.user._id.toString())
+    );
+
+    res.json({ success: true, data });
   } catch (error) {
     next(error);
   }
@@ -52,7 +64,43 @@ exports.getUserStories = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .populate("author", "firstName lastName username avatarUrl");
 
-    res.json({ success: true, data: stories });
+    const data = stories.map((story) =>
+      mapStoryWithViewFlag(story, req.user._id.toString())
+    );
+
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getStoryViews = async (req, res, next) => {
+  try {
+    const story = await Story.findById(req.params.id).populate(
+      "views.user",
+      "firstName lastName username avatarUrl"
+    );
+    if (!story) {
+      return res.status(404).json({ success: false, message: "Story introuvable" });
+    }
+
+    const isAuthor = story.author.toString() === req.user._id.toString();
+    if (!isAuthor) {
+      return res.status(403).json({ success: false, message: "Accès interdit" });
+    }
+
+    const viewers = (story.views || [])
+      .map((view) => ({
+        user: view.user,
+        viewedAt: view.viewedAt,
+      }))
+      .sort((a, b) => {
+        const aTime = a.viewedAt ? a.viewedAt.getTime() : 0;
+        const bTime = b.viewedAt ? b.viewedAt.getTime() : 0;
+        return bTime - aTime;
+      });
+
+    res.json({ success: true, data: { viewers } });
   } catch (error) {
     next(error);
   }

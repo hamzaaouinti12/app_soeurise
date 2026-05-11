@@ -50,6 +50,14 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
+    // Publications sauvegardees
+    savedPosts: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Post",
+      },
+    ],
+
     // Utilisateurs bloqués
     blockedUsers: [
       {

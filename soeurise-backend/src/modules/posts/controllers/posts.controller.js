@@ -7,6 +7,18 @@ const {
 } = require("../../../utils/privacy");
 const notificationsService = require("../../notifications/services/notifications.service");
 
+function computeCommentsCount(post) {
+  if (!post || !Array.isArray(post.comments)) return 0;
+  return post.comments.reduce((acc, c) => acc + 1 + (c.replies ? c.replies.length : 0), 0);
+}
+
+function extractHashtags(text) {
+  if (!text) return [];
+  const matches = text.match(/#[A-Za-z0-9_]+/g) || [];
+  const tags = matches.map((t) => t.slice(1).toLowerCase());
+  return [...new Set(tags)];
+}
+
 /**
  * @desc    Get paginated feed of posts (global or community)
  * @route   GET /api/posts
@@ -48,6 +60,57 @@ exports.getFeed = async (req, res, next) => {
     res.json({
       success: true,
       data,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get public posts for a user
+ * @route   GET /api/posts/user/:userId
+ * @access  Private
+ */
+exports.getUserPosts = async (req, res, next) => {
+  try {
+    const userId = req.params.userId;
+    const user = await User.findById(userId).select("accountPrivacy followers");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Utilisateur introuvable" });
+    }
+
+    const isSelf = req.user._id.toString() === userId.toString();
+    const canView = isSelf || canViewerSeeAuthorGlobalContent(req.user._id, user);
+    if (!canView) {
+      return res.status(403).json({
+        success: false,
+        message: "Publication non accessible (profil privé)",
+      });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = { author: userId, communityId: null };
+
+    const posts = await Post.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("author", "firstName lastName username avatarUrl")
+      .populate("communityId", "name imageUrl");
+
+    posts.forEach((post) => {
+      post._currentUser = req.user;
+    });
+
+    const total = await Post.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: posts,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });
   } catch (error) {
@@ -119,6 +182,7 @@ exports.createPost = async (req, res, next) => {
     const newPost = await Post.create({
       author: req.user._id,
       content,
+      hashtags: extractHashtags(content),
       image: imageUrl,
       communityId: communityId || null,
     });
@@ -301,7 +365,7 @@ exports.addComment = async (req, res, next) => {
       author: req.user._id,
       content: content.trim(),
     });
-    post.commentsCount = post.comments.length;
+    post.commentsCount = computeCommentsCount(post);
     await post.save();
 
     // Trigger notification
@@ -357,15 +421,37 @@ exports.replyToComment = async (req, res, next) => {
       });
     }
 
+    if (post.commentsDisabled) {
+      return res.status(403).json({
+        success: false,
+        message: "Les commentaires sont désactivés pour cette publication",
+      });
+    }
+
     const comment = post.comments.id(req.params.commentId);
     if (!comment) {
       return res.status(404).json({ success: false, message: "Commentaire introuvable" });
     }
 
+    const replyToId = req.body.replyToId ? req.body.replyToId.toString() : null;
+    let replyTarget = null;
+    if (replyToId) {
+      const targetReply = comment.replies.id(replyToId);
+      if (!targetReply) {
+        return res.status(404).json({
+          success: false,
+          message: "Réponse cible introuvable",
+        });
+      }
+      replyTarget = targetReply;
+    }
+
     comment.replies.push({
       author: req.user._id,
       content: content.trim(),
+      replyTo: replyToId || null,
     });
+    post.commentsCount = computeCommentsCount(post);
     await post.save();
 
     // Trigger notification for the comment author
@@ -377,6 +463,23 @@ exports.replyToComment = async (req, res, next) => {
         post: post._id,
         comment: comment._id,
         text: `${req.user.username} a répondu à votre commentaire`,
+      });
+    }
+
+    // If replying to a reply, notify that reply's author too
+    if (
+      replyTarget &&
+      replyTarget.author &&
+      replyTarget.author.toString() !== req.user._id.toString() &&
+      replyTarget.author.toString() !== comment.author.toString()
+    ) {
+      await notificationsService.createNotification({
+        recipient: replyTarget.author,
+        sender: req.user._id,
+        type: "reply",
+        post: post._id,
+        comment: comment._id,
+        text: `${req.user.username} a répondu à votre réponse`,
       });
     }
 
@@ -481,6 +584,191 @@ exports.sharePost = async (req, res, next) => {
       data: { sharesCount: post.sharesCount },
       message: "Post partagé",
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete a post
+ * @route   DELETE /api/posts/:id
+ * @access  Private
+ */
+exports.deletePost = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (post.author._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Vous ne pouvez supprimer que vos propres publications",
+      });
+    }
+
+    await Post.findByIdAndDelete(req.params.id);
+
+    res.json({ success: true, message: "Post supprimé" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update a post
+ * @route   PUT /api/posts/:id
+ * @access  Private
+ */
+exports.updatePost = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (post.author._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Vous ne pouvez modifier que vos propres publications",
+      });
+    }
+
+    const content = req.body.content?.toString() ?? "";
+    if (!content.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Le contenu ne peut pas etre vide",
+      });
+    }
+
+    post.content = content.trim();
+    post.hashtags = extractHashtags(post.content);
+    await post.save();
+
+    const populated = await Post.findById(post._id)
+      .populate("author", "firstName lastName username avatarUrl")
+      .populate("communityId", "name imageUrl");
+    if (populated) populated._currentUser = req.user;
+
+    res.json({ success: true, data: populated, message: "Post mis a jour" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Toggle pin on a post
+ * @route   POST /api/posts/:id/pin
+ * @access  Private
+ */
+exports.togglePinPost = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (post.author._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Vous ne pouvez epingler que vos propres publications",
+      });
+    }
+
+    post.isPinned = !post.isPinned;
+    await post.save();
+
+    res.json({
+      success: true,
+      data: { isPinned: post.isPinned },
+      message: post.isPinned ? "Post epingle" : "Post desepingle",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Toggle save/unsave a post
+ * @route   POST /api/posts/:id/save
+ * @access  Private
+ */
+exports.toggleSave = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (!post.communityId && !canViewerSeeAuthorGlobalContent(req.user._id, post.author)) {
+      return res.status(403).json({
+        success: false,
+        message: "Publication non accessible (profil prive)",
+      });
+    }
+
+    const user = await User.findById(req.user._id).select("savedPosts");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Utilisateur introuvable" });
+    }
+
+    const postId = post._id.toString();
+    const alreadySaved = user.savedPosts.some((id) => id.toString() === postId);
+
+    if (alreadySaved) {
+      user.savedPosts.pull(post._id);
+    } else {
+      user.savedPosts.push(post._id);
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      data: {
+        isSaved: !alreadySaved,
+        savedCount: user.savedPosts.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get saved posts
+ * @route   GET /api/posts/saved
+ * @access  Private
+ */
+exports.getSavedPosts = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select("savedPosts");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Utilisateur introuvable" });
+    }
+
+    const savedIds = user.savedPosts || [];
+    if (!savedIds.length) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const posts = await Post.find({ _id: { $in: savedIds } })
+      .populate("author", "firstName lastName username avatarUrl")
+      .populate("communityId", "name imageUrl");
+
+    posts.forEach((post) => {
+      post._currentUser = req.user;
+    });
+
+    let data = posts;
+    data = await filterGlobalPostsForViewer(data, req.user._id);
+
+    const orderMap = new Map(savedIds.map((id, idx) => [id.toString(), idx]));
+    data.sort((a, b) => (orderMap.get(a._id.toString()) ?? 0) - (orderMap.get(b._id.toString()) ?? 0));
+
+    res.json({ success: true, data });
   } catch (error) {
     next(error);
   }
@@ -678,8 +966,8 @@ exports.deleteComment = async (req, res, next) => {
     } else {
       post.comments.pull(req.params.commentId);
     }
-    
-    post.commentsCount = post.comments.length + post.comments.reduce((acc, c) => acc + c.replies.length, 0);
+
+    post.commentsCount = computeCommentsCount(post);
     await post.save();
     res.json({ success: true, message: "Commentaire supprimé" });
   } catch (error) {

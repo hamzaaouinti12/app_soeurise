@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../constants.dart';
@@ -34,6 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         bool isUploadingAvatar = false;
+        File? tempAvatar;
         return HeroMode(
           enabled: false,
           child: StatefulBuilder(
@@ -73,22 +76,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   GestureDetector(
                     onTap: () async {
                       if (isUploadingAvatar) return;
+                      final source = await showModalBottomSheet<ImageSource>(
+                        context: context,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) {
+                          return SafeArea(
+                            child: Container(
+                              margin: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ListTile(
+                                    leading: const Icon(Icons.photo_library_rounded),
+                                    title: const Text('Galerie'),
+                                    onTap: () => Navigator.pop(context, ImageSource.gallery),
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.camera_alt_rounded),
+                                    title: const Text('Camera'),
+                                    onTap: () => Navigator.pop(context, ImageSource.camera),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+
+                      if (source == null) return;
                       final picked = await _picker.pickImage(
-                        source: ImageSource.gallery,
-                        imageQuality: 70,
-                        maxWidth: 800,
+                        source: source,
+                        imageQuality: 80,
+                        maxWidth: 1200,
                       );
                       if (picked != null) {
                         setState(() {
+                          tempAvatar = File(picked.path);
                           isUploadingAvatar = true;
                         });
-                        
-                        final (success, error) = await ProfileService.instance.updateAvatarWithError(picked.path);
-                        
+
+                        final (success, error) =
+                            await ProfileService.instance.updateAvatarWithError(
+                          picked.path,
+                        );
+
                         setState(() {
                           isUploadingAvatar = false;
                         });
-                        
+
                         if (success && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -99,7 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         } else if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(error ?? 'Erreur lors de la mise à jour de la photo'),
+                              content: Text(error ?? 'Erreur lors de la mise a jour de la photo'),
                               backgroundColor: AppColors.errorColor,
                             ),
                           );
@@ -117,6 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ? ProfileService.instance.profile.value.username
                               : '??',
                           radius: 40,
+                          localFile: tempAvatar,
                         ),
                         if (isUploadingAvatar)
                           Positioned.fill(

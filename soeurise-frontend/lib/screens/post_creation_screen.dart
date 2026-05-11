@@ -23,10 +23,10 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
   File? selectedImage;
   bool _isPublishing = false;
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         imageQuality: 70,
         maxWidth: 1080,
       );
@@ -42,8 +42,46 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
     }
   }
 
+  Future<void> _showPhotoSourcePicker() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library_rounded),
+                  title: const Text('Galerie'),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_rounded),
+                  title: const Text('Camera'),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (source != null) {
+      await _pickImage(source);
+    }
+  }
+
   Future<void> _publishPost() async {
-    if (textController.text.isEmpty) {
+    final content = textController.text.trim();
+    if (content.isEmpty && selectedImage == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Veuillez entrer du texte')));
@@ -53,7 +91,7 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
     setState(() => _isPublishing = true);
 
     final newPost = await PostService.instance.createPost(
-      content: textController.text,
+      content: content,
       imageFile: selectedImage,
     );
 
@@ -209,48 +247,13 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                         ),
                       ),
 
-                      // Selected image
-                      if (selectedImage != null) ...[
-                        const SizedBox(height: 16),
-                        FadeSlideIn(
-                          child: Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(
-                                  AppBorderRadius.lg,
-                                ),
-                                child: Image.file(
-                                  selectedImage!,
-                                  height: 200,
-                                  width: double.infinity,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: GestureDetector(
-                                  onTap:
-                                      () =>
-                                          setState(() => selectedImage = null),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withAlpha(120),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.close_rounded,
-                                      color: Colors.white,
-                                      size: 18,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                      const SizedBox(height: 16),
+                      FadeSlideIn(
+                        child:
+                            selectedImage != null
+                                ? _buildSelectedImage()
+                                : _buildImagePickerCard(),
+                      ),
                     ],
                   ),
                 ),
@@ -269,7 +272,11 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
                   top: false,
                   child: Row(
                     children: [
-                      _actionButton(Icons.image_rounded, 'Photo', _pickImage),
+                      _actionButton(
+                        Icons.image_rounded,
+                        'Photo',
+                        _showPhotoSourcePicker,
+                      ),
                       const SizedBox(width: 12),
                       _actionButton(
                         Icons.emoji_emotions_outlined,
@@ -311,6 +318,127 @@ class _PostCreationScreenState extends State<PostCreationScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildImagePickerCard() {
+    return GestureDetector(
+      onTap: _showPhotoSourcePicker,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primary.withAlpha(18),
+              AppColors.beigeLight,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+          border: Border.all(
+            color: AppColors.primary.withAlpha(40),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withAlpha(20),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.add_photo_alternate_rounded,
+                color: AppColors.primary,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ajouter une photo',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Choisissez une image pour enrichir votre publication',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textLight),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedImage() {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+          child: Image.file(
+            selectedImage!,
+            height: 220,
+            width: double.infinity,
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: GestureDetector(
+            onTap: () => setState(() => selectedImage = null),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.black.withAlpha(140),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 10,
+          left: 10,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.black.withAlpha(140),
+              borderRadius: BorderRadius.circular(AppBorderRadius.pill),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  'Photo ajoutee',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

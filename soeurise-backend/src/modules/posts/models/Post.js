@@ -11,6 +11,12 @@ const postSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    hashtags: [
+      {
+        type: String,
+        index: true,
+      },
+    ],
     image: {
       type: String,
       default: "",
@@ -33,6 +39,10 @@ const postSchema = new mongoose.Schema(
       default: 0,
     },
     commentsDisabled: {
+      type: Boolean,
+      default: false,
+    },
+    isPinned: {
       type: Boolean,
       default: false,
     },
@@ -78,6 +88,10 @@ const postSchema = new mongoose.Schema(
               ref: "User",
               required: true,
             },
+            replyTo: {
+              type: mongoose.Schema.Types.ObjectId,
+              default: null,
+            },
             content: {
               type: String,
               required: true,
@@ -110,6 +124,14 @@ const postSchema = new mongoose.Schema(
 postSchema.virtual("isLiked").get(function () {
   if (this._currentUser && this.likedBy) {
     return this.likedBy.includes(this._currentUser._id);
+  }
+  return false;
+});
+
+postSchema.virtual("isSaved").get(function () {
+  if (this._currentUser && Array.isArray(this._currentUser.savedPosts)) {
+    const pid = this._id.toString();
+    return this._currentUser.savedPosts.some((id) => id.toString() === pid);
   }
   return false;
 });

@@ -85,6 +85,27 @@ class StoryService {
     }
   }
 
+  Future<List<StoryViewer>> fetchViewers(String storyId) async {
+    try {
+      final response = await ApiClient.instance.get('/stories/$storyId/views');
+      if (response.success && response.data != null) {
+        final raw = response.data;
+        final list = raw is List
+            ? raw
+            : (raw is Map<String, dynamic> ? raw['viewers'] as List? : null) ??
+                [];
+        return list
+            .whereType<Map<String, dynamic>>()
+            .map((json) => StoryViewer.fromJson(json))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching story viewers: $e');
+      return [];
+    }
+  }
+
   Future<(bool, String?)> deleteStory(String storyId) async {
     try {
       final response = await ApiClient.instance.delete('/stories/$storyId');

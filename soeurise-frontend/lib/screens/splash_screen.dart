@@ -139,31 +139,11 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                   );
                 },
-                child: Container(
-                  width: 120,
+                child: Image.asset(
+                  'logo/Nom complet.png',
+                  width: 260,
                   height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: AppColors.primaryGradient,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withAlpha(60),
-                        blurRadius: 30,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'S',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 52,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                  fit: BoxFit.contain,
                 ),
               ),
 
@@ -178,20 +158,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: child,
                   );
                 },
-                child: ShaderMask(
-                  shaderCallback: (bounds) =>
-                      AppColors.accentGradient.createShader(bounds),
-                  child: const Text(
-                    'Soeurise',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 38,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ),
+                child: const SizedBox(height: 1),
               ),
 
               const SizedBox(height: 10),

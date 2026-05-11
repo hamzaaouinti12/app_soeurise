@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const { deleteFileSafe } = require("../../../utils/file");
+const notificationsService = require("../../notifications/services/notifications.service");
 
 /**
  * Mettre à jour le profil (firstName, lastName, username, email)
@@ -141,6 +142,14 @@ async function acceptFollowRequest(ownerId, requesterId) {
     }
     await owner.save();
     await requester.save();
+
+    await notificationsService.createNotification({
+        recipient: requesterId,
+        sender: ownerId,
+        type: "follow",
+        text: `${owner.username} a accepté votre demande d'abonnement`,
+    });
+
     return { message: "Demande acceptée" };
 }
 

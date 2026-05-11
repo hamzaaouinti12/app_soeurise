@@ -12,10 +12,16 @@ class SocketService {
   final _messageController = StreamController<dynamic>.broadcast();
   final _notificationController = StreamController<dynamic>.broadcast();
   final _groupMessageController = StreamController<dynamic>.broadcast();
+  final _typingController = StreamController<dynamic>.broadcast();
+  final _readController = StreamController<dynamic>.broadcast();
+  final _deleteController = StreamController<dynamic>.broadcast();
 
   Stream<dynamic> get notificationStream => _notificationController.stream;
   Stream<dynamic> get messageStream => _messageController.stream;
   Stream<dynamic> get groupMessageStream => _groupMessageController.stream;
+  Stream<dynamic> get typingStream => _typingController.stream;
+  Stream<dynamic> get readStream => _readController.stream;
+  Stream<dynamic> get deleteStream => _deleteController.stream;
 
   bool get isConnected => _socket?.connected ?? false;
 
@@ -63,6 +69,22 @@ class SocketService {
       print('[Socket] New group message: $data');
       _groupMessageController.add(data);
     });
+
+    _socket!.on('private_typing', (data) {
+      _typingController.add(data);
+    });
+
+    _socket!.on('private_stop_typing', (data) {
+      _typingController.add({'stop': true, 'data': data});
+    });
+
+    _socket!.on('private_messages_read', (data) {
+      _readController.add(data);
+    });
+
+    _socket!.on('private_message_deleted', (data) {
+      _deleteController.add(data);
+    });
   }
 
   void joinGroup(String groupId) {
@@ -81,5 +103,11 @@ class SocketService {
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
+  }
+
+  void sendTyping(String toUserId, bool isTyping) {
+    if (_socket == null || !isConnected) return;
+    final event = isTyping ? 'private_typing' : 'private_stop_typing';
+    _socket!.emit(event, {'toUserId': toUserId});
   }
 }

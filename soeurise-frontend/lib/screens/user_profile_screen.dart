@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../models/models.dart';
 import '../services/profile_service.dart';
+import '../services/post_service.dart';
 import '../theme/glass_widgets.dart';
 import '../widgets/user_avatar.dart';
+import '../widgets/post_card.dart';
 import 'followers_list_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -19,12 +21,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   User? _user;
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isPostsLoading = true;
+  bool _isSavedLoading = true;
+  List<Post> _userPosts = [];
+  List<Post> _savedPosts = [];
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _loadPosts();
   }
+
+  bool get _isSelf =>
+      widget.userId == ProfileService.instance.profile.value.id;
 
   Future<void> _loadUser({bool silent = false}) async {
     if (!silent && mounted) {
@@ -35,6 +45,28 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       setState(() {
         _user = user;
         if (!silent) _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadPosts() async {
+    setState(() {
+      _isPostsLoading = true;
+      _isSavedLoading = _isSelf;
+    });
+
+    final posts = await PostService.instance.fetchUserPosts(widget.userId);
+    List<Post> saved = [];
+    if (_isSelf) {
+      saved = await PostService.instance.fetchSavedPosts();
+    }
+
+    if (mounted) {
+      setState(() {
+        _userPosts = posts;
+        _savedPosts = saved;
+        _isPostsLoading = false;
+        _isSavedLoading = false;
       });
     }
   }
@@ -139,6 +171,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canShowPosts =
+        _user != null && _user!.canViewContent && !_user!.isBlocked;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil utilisateur'),
@@ -460,6 +494,64 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ],
                         ),
                       ),
+
+                    if (canShowPosts) ...[
+                      const SizedBox(height: 24),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Publications', style: AppTextStyles.headline4),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_isPostsLoading)
+                        const Center(
+                          child: CircularProgressIndicator(color: AppColors.primary),
+                        )
+                      else if (_userPosts.isEmpty)
+                        Text(
+                          'Aucune publication pour le moment',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        )
+                      else
+                        Column(
+                          children: _userPosts
+                              .map((post) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 16),
+                                    child: PostCard(post: post),
+                                  ))
+                              .toList(),
+                        ),
+                    ],
+
+                    if (_isSelf && canShowPosts) ...[
+                      const SizedBox(height: 24),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Enregistrees', style: AppTextStyles.headline4),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_isSavedLoading)
+                        const Center(
+                          child: CircularProgressIndicator(color: AppColors.primary),
+                        )
+                      else if (_savedPosts.isEmpty)
+                        Text(
+                          'Aucune publication enregistree',
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        )
+                      else
+                        Column(
+                          children: _savedPosts
+                              .map((post) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 16),
+                                    child: PostCard(post: post),
+                                  ))
+                              .toList(),
+                        ),
+                    ],
                   ],
                 ),
               ),

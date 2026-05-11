@@ -42,6 +42,23 @@ class PostService {
     }
   }
 
+  /// Fetch public posts for a specific user
+  Future<List<Post>> fetchUserPosts(String userId, {int page = 1, int limit = 20}) async {
+    try {
+      final response = await ApiClient.instance.get(
+        '/posts/user/$userId?page=$page&limit=$limit',
+      );
+      if (response.success && response.data != null) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => Post.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching user posts: $e');
+      return [];
+    }
+  }
+
   /// Create a new post
   Future<Post?> createPost({
     required String content,
@@ -93,6 +110,70 @@ class PostService {
     }
   }
 
+  /// Delete a post
+  Future<bool> deletePost(String postId) async {
+    try {
+      final response = await ApiClient.instance.delete('/posts/$postId');
+      return response.success;
+    } catch (e) {
+      print('Error deleting post: $e');
+      return false;
+    }
+  }
+
+  /// Update a post
+  Future<Post?> updatePost(String postId, {required String content}) async {
+    try {
+      final response = await ApiClient.instance.put('/posts/$postId', {
+        'content': content,
+      });
+      if (response.success && response.data != null) {
+        return Post.fromJson(response.data);
+      }
+      return null;
+    } catch (e) {
+      print('Error updating post: $e');
+      return null;
+    }
+  }
+
+  /// Toggle pin/unpin a post
+  Future<bool> togglePinPost(String postId) async {
+    try {
+      final response = await ApiClient.instance.post('/posts/$postId/pin');
+      return response.success;
+    } catch (e) {
+      print('Error toggling pin: $e');
+      return false;
+    }
+  }
+
+  /// Save/unsave a post
+  Future<bool> toggleSave(String postId) async {
+    try {
+      final response = await ApiClient.instance.post('/posts/$postId/save');
+      return response.success;
+    } catch (e) {
+      print('Error saving post: $e');
+      return false;
+    }
+  }
+
+  /// Fetch saved posts
+  Future<List<Post>> fetchSavedPosts() async {
+    try {
+      final response = await ApiClient.instance.get('/posts/saved');
+      if (response.success && response.data != null) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => Post.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching saved posts: $e');
+      return [];
+    }
+  }
+
   /// Fetch comments for a post
   Future<List<Comment>> fetchComments(String postId) async {
     try {
@@ -125,11 +206,19 @@ class PostService {
   }
 
   /// Reply to a comment
-  Future<Comment?> replyToComment(String postId, String commentId, String content) async {
+  Future<Comment?> replyToComment(
+    String postId,
+    String commentId,
+    String content, {
+    String? replyToId,
+  }) async {
     try {
       final response = await ApiClient.instance.post(
         '/posts/$postId/comments/$commentId/reply',
-        {'content': content},
+        {
+          'content': content,
+          if (replyToId != null) 'replyToId': replyToId,
+        },
       );
       if (response.success && response.data != null) {
         return Comment.fromJson(response.data);

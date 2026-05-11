@@ -17,6 +17,8 @@ import 'profile_screen.dart';
 import 'story_viewer_screen.dart';
 import 'user_profile_screen.dart';
 import 'notifications_screen.dart';
+import 'messages_screen.dart';
+import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -96,6 +98,16 @@ class HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.primary,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const PostCreationScreen()),
+          );
+        },
+        child: const Icon(Icons.edit_rounded, color: Colors.white),
+      ),
       body: NestedScrollView(
         headerSliverBuilder:
             (context, _) => [
@@ -104,71 +116,26 @@ class HomeScreenState extends State<HomeScreen>
                 snap: true,
                 backgroundColor: AppColors.background.withAlpha(240),
                 elevation: 0,
-                title: ShaderMask(
-                  shaderCallback:
-                      (bounds) => AppColors.accentGradient.createShader(bounds),
-                  child: const Text(
-                    'Soeurise',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
+                title: Image.asset(
+                  'logo/Nom complet.png',
+                  height: 36,
+                  fit: BoxFit.contain,
                 ),
                 centerTitle: false,
                 actions: [
                   // Search button
-                  SearchAnchor(
-                    builder: (context, controller) {
-                      return IconButton(
-                        icon: const Icon(
-                          Icons.search_rounded,
-                          color: AppColors.primary,
-                        ),
-                        onPressed: () {
-                          controller.openView();
-                        },
+                  IconButton(
+                    icon: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.primary,
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SearchScreen()),
                       );
                     },
-                    suggestionsBuilder: (context, controller) async {
-                      final query = controller.text;
-                      if (query.length < 2) return [];
-                      final users = await ProfileService.instance.searchUsers(
-                        query,
-                      );
-                      return users.map((user) {
-                        return ListTile(
-                          leading: UserAvatar(
-                            imageUrl: user.avatarFullUrl,
-                            username: user.username,
-                            radius: 20,
-                          ),
-                          title: Text(
-                            user.fullName.isNotEmpty
-                                ? user.fullName
-                                : user.username,
-                          ),
-                          subtitle: Text('@${user.username}'),
-                          onTap: () {
-                            controller.closeView(null);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (_) => UserProfileScreen(userId: user.id),
-                              ),
-                            );
-                          },
-                        );
-                      });
-                    },
-                    viewBackgroundColor: AppColors.background,
-                    viewSurfaceTintColor: Colors.transparent,
-                    viewElevation: 0,
-                    headerTextStyle: AppTextStyles.bodyLarge,
-                    viewHintText: 'Rechercher une soeur...',
+                    tooltip: 'Rechercher',
                   ),
                   // Refresh button
                   Container(
@@ -183,7 +150,30 @@ class HomeScreenState extends State<HomeScreen>
                         color: AppColors.primary,
                       ),
                       onPressed: refreshFeeds,
-                      tooltip: 'Rafraîchir',
+                        tooltip: 'Rafraîchir',
+                    ),
+                  ),
+                  // Messages button
+                  Container(
+                    margin: const EdgeInsets.only(right: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withAlpha(20),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        color: AppColors.primary,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MessagesScreen(),
+                          ),
+                        );
+                      },
+                      tooltip: 'Messages',
                     ),
                   ),
                   // Notification button
@@ -542,26 +532,48 @@ class HomeScreenState extends State<HomeScreen>
                   onTap: _createStory,
                   child: Column(
                     children: [
-                      Container(
-                        width: 68,
-                        height: 68,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.primary,
-                            width: 2,
+                      Stack(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: AppColors.primaryGradient,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const CurrentUserAvatar(radius: 30),
+                            ),
                           ),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.add,
-                            color: AppColors.primary,
-                            size: 28,
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.add,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      Text('Ma story', style: AppTextStyles.caption),
+                      const SizedBox(height: 6),
+                      Text('Votre story', style: AppTextStyles.caption),
                     ],
                   ),
                 );
@@ -570,6 +582,16 @@ class HomeScreenState extends State<HomeScreen>
               final authorId = groupedAuthorOrder[index - 1];
               final authorStories = groupedStories[authorId]!;
               final story = authorStories.first;
+
+              final bool isViewed = story.isViewed;
+              final Gradient ringGradient = isViewed
+                  ? LinearGradient(
+                      colors: [
+                        AppColors.beigeDark.withAlpha(160),
+                        AppColors.beigeDark.withAlpha(160),
+                      ],
+                    )
+                  : AppColors.primaryGradient;
 
               return GestureDetector(
                 onTap: () {
@@ -589,17 +611,34 @@ class HomeScreenState extends State<HomeScreen>
                       padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: AppColors.primaryGradient,
+                        gradient: ringGradient,
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                isViewed
+                                    ? Colors.black.withAlpha(10)
+                                    : AppColors.primary.withAlpha(40),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      child: UserAvatar(
-                        imageUrl: story.profileImageUrl,
-                        username: story.username,
-                        radius: 30,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: UserAvatar(
+                          imageUrl: story.profileImageUrl,
+                          username: story.username,
+                          radius: 30,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 6),
                     SizedBox(
-                      width: 72,
+                      width: 76,
                       child: Text(
                         story.username,
                         maxLines: 1,

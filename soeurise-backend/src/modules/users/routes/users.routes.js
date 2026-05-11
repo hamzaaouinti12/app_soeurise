@@ -16,6 +16,9 @@ router.get("/me/follow-requests", requireAuth, usersController.getMyFollowReques
 // GET /api/users/me/followers — followers de l'utilisateur courant
 router.get("/me/followers", requireAuth, usersController.getMyFollowers);
 
+// GET /api/users/me/following — abonnements de l'utilisateur courant
+router.get("/me/following", requireAuth, usersController.getMyFollowing);
+
 // GET /api/users/me/blocked — utilisateurs bloqués
 router.get("/me/blocked", requireAuth, usersController.getBlockedUsers);
 
@@ -37,6 +40,9 @@ router.get("/:id", optionalAuth, usersController.getUserById);
 
 // GET /api/users/:userId/followers — followers d'un utilisateur spécifique
 router.get("/:userId/followers", optionalAuth, usersController.getUserFollowers);
+
+// GET /api/users/:userId/following — abonnements d'un utilisateur spécifique
+router.get("/:userId/following", optionalAuth, usersController.getUserFollowing);
 
 // Toutes les routes suivantes nécessitent auth
 router.use(requireAuth);
