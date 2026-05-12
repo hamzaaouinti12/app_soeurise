@@ -1,0 +1,16 @@
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.1}Introduction}{\reset@font\mtcSfont 25}{section.2.1}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.2}Branche Fonctionnelle}{\reset@font\mtcSfont 25}{section.2.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.1}Identification des Acteurs}{\reset@font\mtcSSfont 25}{subsection.2.2.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.2}Capture des Besoins Fonctionnels}{\reset@font\mtcSSfont 25}{subsection.2.2.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.2.3}Capture des Besoins Non Fonctionnels}{\reset@font\mtcSSfont 27}{subsection.2.2.3}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.3}Diagramme de cas d'utilisation general}{\reset@font\mtcSfont 28}{section.2.3}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.4}Raffinement des cas d'utilisation <<gérer contenu>>}{\reset@font\mtcSfont 29}{section.2.4}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.5}Raffinement des cas d'utilisation <<s'inscrire à un événement >>}{\reset@font\mtcSfont 31}{section.2.5}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.6}Raffinement des cas d'utilisation <<publier un post>>}{\reset@font\mtcSfont 33}{section.2.6}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.7}Branche Technique}{\reset@font\mtcSfont 34}{section.2.7}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.7.1}Flutter \& Dart — Frontend}{\reset@font\mtcSSfont 35}{subsection.2.7.1}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.7.2}Node.js \& Express.js — Backend}{\reset@font\mtcSSfont 35}{subsection.2.7.2}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.7.3}MongoDB \& Mongoose — Base de données}{\reset@font\mtcSSfont 36}{subsection.2.7.3}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.7.4}Sécurité}{\reset@font\mtcSSfont 36}{subsection.2.7.4}}
+{\reset@font\mtcSSfont\mtc@string\contentsline{subsection}{\noexpand \leavevmode \numberline {2.7.5}Gestion des fichiers et Documentation}{\reset@font\mtcSSfont 36}{subsection.2.7.5}}
+{\reset@font\mtcSfont\mtc@string\contentsline{section}{\noexpand \leavevmode \numberline {2.8}Conclusion}{\reset@font\mtcSfont 37}{section.2.8}}

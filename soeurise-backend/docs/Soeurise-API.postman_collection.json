@@ -1,0 +1,582 @@
+{
+    "info": {
+        "name": "Soeurise API",
+        "description": "Collection complète de l'API Soeurise Backend",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:4000"
+        },
+        {
+            "key": "token",
+            "value": ""
+        },
+        {
+            "key": "adminToken",
+            "value": ""
+        },
+        {
+            "key": "userId",
+            "value": ""
+        },
+        {
+            "key": "groupId",
+            "value": ""
+        },
+        {
+            "key": "memberId",
+            "value": ""
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/auth/register",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123!\",\n  \"passwordConfirm\": \"Password123!\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "  var json = pm.response.json();",
+                                    "  pm.collectionVariables.set('token', json.token);",
+                                    "  pm.collectionVariables.set('userId', json.user.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/auth/login",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123!\"\n}"
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "  var json = pm.response.json();",
+                                    "  pm.collectionVariables.set('token', json.token);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Users (Profile)",
+            "item": [
+                {
+                    "name": "GET /me",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/users/me",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "PUT /me (update profile)",
+                    "request": {
+                        "method": "PUT",
+                        "url": "{{baseUrl}}/api/users/me",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\",\n  \"username\": \"updateduser\",\n  \"email\": \"updated@example.com\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "PUT /me/avatar (upload)",
+                    "request": {
+                        "method": "PUT",
+                        "url": "{{baseUrl}}/api/users/me/avatar",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "avatar",
+                                    "type": "file",
+                                    "src": ""
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "DELETE /me/avatar",
+                    "request": {
+                        "method": "DELETE",
+                        "url": "{{baseUrl}}/api/users/me/avatar",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Admin",
+            "item": [
+                {
+                    "name": "GET /users (list)",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/users?page=1&limit=10&search=",
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": ""
+                                }
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminToken}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "GET /users/:id",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/admin/users/{{userId}}",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminToken}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "PATCH /users/:id/role",
+                    "request": {
+                        "method": "PATCH",
+                        "url": "{{baseUrl}}/api/admin/users/{{userId}}/role",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminToken}}"
+                                }
+                            ]
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"role\": \"admin\" }"
+                        }
+                    }
+                },
+                {
+                    "name": "PATCH /users/:id/status",
+                    "request": {
+                        "method": "PATCH",
+                        "url": "{{baseUrl}}/api/admin/users/{{userId}}/status",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminToken}}"
+                                }
+                            ]
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"isActive\": false }"
+                        }
+                    }
+                },
+                {
+                    "name": "DELETE /users/:id",
+                    "request": {
+                        "method": "DELETE",
+                        "url": "{{baseUrl}}/api/admin/users/{{userId}}",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{adminToken}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Community - Public",
+            "item": [
+                {
+                    "name": "GET /groups/public",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/api/community/groups/public?page=1&limit=10&search=",
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": ""
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "GET /groups/:id",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/community/groups/{{groupId}}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Community - Auth",
+            "item": [
+                {
+                    "name": "POST /groups (create)",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/community/groups",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "value": "Mon Groupe",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "Description du groupe",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "isPublic",
+                                    "value": "true",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "requiresSubscription",
+                                    "value": "false",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": ""
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 201) {",
+                                    "  var json = pm.response.json();",
+                                    "  pm.collectionVariables.set('groupId', json.data.group.id);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "POST /groups/:id/join",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/community/groups/{{groupId}}/join",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "GET /groups/:id/membership/me",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/community/groups/{{groupId}}/membership/me",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "GET /groups/:id/subscription/me",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/community/groups/{{groupId}}/subscription/me",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Community - Management",
+            "item": [
+                {
+                    "name": "GET /requests (pending)",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/api/community/groups/{{groupId}}/requests",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "PATCH /requests/:memberId (accept/reject)",
+                    "request": {
+                        "method": "PATCH",
+                        "url": "{{baseUrl}}/api/community/groups/{{groupId}}/requests/{{memberId}}",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"action\": \"accept\" }"
+                        }
+                    }
+                },
+                {
+                    "name": "POST /members (add direct)",
+                    "request": {
+                        "method": "POST",
+                        "url": "{{baseUrl}}/api/community/groups/{{groupId}}/members",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"userId\": \"TARGET_USER_ID\",\n  \"roleInGroup\": \"member\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "PATCH /members/:memberId (update)",
+                    "request": {
+                        "method": "PATCH",
+                        "url": "{{baseUrl}}/api/community/groups/{{groupId}}/members/{{memberId}}",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{ \"roleInGroup\": \"moderator\" }"
+                        }
+                    }
+                },
+                {
+                    "name": "DELETE /members/:memberId",
+                    "request": {
+                        "method": "DELETE",
+                        "url": "{{baseUrl}}/api/community/groups/{{groupId}}/members/{{memberId}}",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

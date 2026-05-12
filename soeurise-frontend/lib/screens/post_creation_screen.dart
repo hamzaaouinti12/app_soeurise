@@ -1,0 +1,492 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'dart:io' if (dart.library.html) 'package:soeurise/src/file_stub.dart';
+import 'package:image_picker/image_picker.dart';
+import '../constants.dart';
+import '../widgets/adaptive_image.dart';
+import '../theme/glass_widgets.dart';
+import '../models/models.dart';
+import '../widgets/user_avatar.dart';
+import '../services/post_service.dart';
+import '../services/profile_service.dart';
+
+class PostCreationScreen extends StatefulWidget {
+  final Function(Post)? onPostCreated;
+
+  const PostCreationScreen({super.key, this.onPostCreated});
+
+  @override
+  State<PostCreationScreen> createState() => _PostCreationScreenState();
+}
+
+class _PostCreationScreenState extends State<PostCreationScreen> {
+  final textController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
+  File? selectedImage;
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageWebName;
+  bool _isPublishing = false;
+
+  bool get _hasSelectedImage =>
+      selectedImage != null ||
+      (_selectedImageBytes != null && _selectedImageBytes!.isNotEmpty);
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        imageQuality: 70,
+        maxWidth: 1080,
+      );
+      if (!mounted) return;
+      if (pickedFile != null) {
+        if (kIsWeb) {
+          final bytes = await pickedFile.readAsBytes();
+          if (!mounted) return;
+          final name = pickedFile.name.trim();
+          setState(() {
+            _selectedImageBytes = bytes;
+            _selectedImageWebName = name.isNotEmpty ? name : 'post.jpg';
+            selectedImage = null;
+          });
+        } else {
+          setState(() {
+            selectedImage = File(pickedFile.path);
+            _selectedImageBytes = null;
+            _selectedImageWebName = null;
+          });
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
+  }
+
+  Future<void> _showPhotoSourcePicker() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library_rounded),
+                  title: const Text('Galerie'),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_rounded),
+                  title: const Text('Camera'),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (source != null) {
+      await _pickImage(source);
+    }
+  }
+
+  Future<void> _publishPost() async {
+    final content = textController.text.trim();
+    if (content.isEmpty && !_hasSelectedImage) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez entrer du texte ou ajouter une photo'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isPublishing = true);
+
+    final Post? newPost;
+    if (kIsWeb &&
+        _selectedImageBytes != null &&
+        _selectedImageBytes!.isNotEmpty) {
+      newPost = await PostService.instance.createPost(
+        content: content,
+        imageBytes: _selectedImageBytes,
+        imageFileName: _selectedImageWebName ?? 'post.jpg',
+      );
+    } else {
+      newPost = await PostService.instance.createPost(
+        content: content,
+        imageFile: selectedImage,
+      );
+    }
+
+    if (mounted) {
+      setState(() => _isPublishing = false);
+      if (newPost != null) {
+        if (widget.onPostCreated != null) {
+          widget.onPostCreated!(newPost);
+        }
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de la création du post')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: AnimatedGradientBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Top bar
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(180),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          color: AppColors.textPrimary,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ShaderMask(
+                        shaderCallback:
+                            (bounds) =>
+                                AppColors.accentGradient.createShader(bounds),
+                        child: const Text(
+                          'Nouvelle publication',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GlassButton(
+                      label: 'Publier',
+                      isLoading: _isPublishing,
+                      width: 90,
+                      onPressed: _publishPost,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      // User info
+                      FadeSlideIn(
+                        child: Row(
+                          children: [
+                            const CurrentUserAvatar(radius: 24),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  ValueListenableBuilder<Profile>(
+                                    valueListenable:
+                                        ProfileService.instance.profile,
+                                    builder: (context, profile, _) {
+                                      return Text(
+                                        profile.fullName,
+                                        style: AppTextStyles.bodyLarge.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      );
+                                    },
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withAlpha(15),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '🌍 Public',
+                                      style: AppTextStyles.caption.copyWith(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Text field
+                      FadeSlideIn(
+                        delay: const Duration(milliseconds: 100),
+                        child: GlassCard(
+                          padding: const EdgeInsets.all(4),
+                          child: TextField(
+                            controller: textController,
+                            maxLines: 8,
+                            style: AppTextStyles.bodyLarge,
+                            decoration: InputDecoration(
+                              hintText: 'Qu\'avez-vous en tête ? ✨',
+                              hintStyle: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.textLight,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.all(12),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+                      FadeSlideIn(
+                        child:
+                            _hasSelectedImage
+                                ? _buildSelectedImage()
+                                : _buildImagePickerCard(),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Bottom actions
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(200),
+                  border: Border(
+                    top: BorderSide(color: AppColors.beigeDark.withAlpha(40)),
+                  ),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Row(
+                    children: [
+                      _actionButton(
+                        Icons.image_rounded,
+                        'Photo',
+                        _showPhotoSourcePicker,
+                      ),
+                      const SizedBox(width: 12),
+                      _actionButton(
+                        Icons.emoji_emotions_outlined,
+                        'Emoji',
+                        () {},
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _actionButton(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withAlpha(15),
+          borderRadius: BorderRadius.circular(AppBorderRadius.pill),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: AppColors.primary, size: 20),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImagePickerCard() {
+    return GestureDetector(
+      onTap: _showPhotoSourcePicker,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primary.withAlpha(18),
+              AppColors.beigeLight,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+          border: Border.all(
+            color: AppColors.primary.withAlpha(40),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withAlpha(20),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.add_photo_alternate_rounded,
+                color: AppColors.primary,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ajouter une photo',
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Choisissez une image pour enrichir votre publication',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textLight),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedImage() {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+          child: AdaptiveImage(
+            file: selectedImage,
+            memoryBytes: _selectedImageBytes,
+            height: 220,
+            width: double.infinity,
+            fit: BoxFit.cover,
+          ),
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: GestureDetector(
+            onTap:
+                () => setState(() {
+                  selectedImage = null;
+                  _selectedImageBytes = null;
+                  _selectedImageWebName = null;
+                }),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.black.withAlpha(140),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          bottom: 10,
+          left: 10,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.black.withAlpha(140),
+              borderRadius: BorderRadius.circular(AppBorderRadius.pill),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  'Photo ajoutee',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    textController.dispose();
+    super.dispose();
+  }
+}

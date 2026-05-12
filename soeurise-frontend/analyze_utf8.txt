@@ -1,0 +1,38 @@
+﻿Analyzing soeurise-frontend...                                  
+
+   info - The local variable '_navItems' starts with an underscore - lib\screens\main_app.dart:36:24 - no_leading_underscores_for_local_identifiers
+  error - Undefined name '_navItems' - lib\screens\main_app.dart:179:39 - undefined_identifier
+  error - Undefined name '_navItems' - lib\screens\main_app.dart:190:18 - undefined_identifier
+warning - Unused import: '../services/community_service.dart' - lib\screens\profile_screen.dart:8:8 - unused_import
+warning - Unused import: 'dart:io' - lib\services\api_client.dart:2:8 - unused_import
+  error - A value of type 'Map<String, dynamic>?' can't be assigned to a variable of type 'List<dynamic>' - lib\services\event_service.dart:13:36 - invalid_assignment
+   info - Don't invoke 'print' in production code - lib\services\event_service.dart:18:7 - avoid_print
+  error - A value of type 'Map<String, dynamic>?' can't be assigned to a variable of type 'List<dynamic>' - lib\services\masterclass_service.dart:13:36 - invalid_assignment
+   info - Don't invoke 'print' in production code - lib\services\masterclass_service.dart:18:7 - avoid_print
+warning - Unused import: 'dart:convert' - lib\services\post_service.dart:1:8 - unused_import
+  error - A value of type 'Map<String, dynamic>?' can't be assigned to a variable of type 'List<dynamic>' - lib\services\post_service.dart:20:36 - invalid_assignment
+   info - Don't invoke 'print' in production code - lib\services\post_service.dart:25:7 - avoid_print
+  error - The method 'multipartPost' isn't defined for the type 'ApiClient' - lib\services\post_service.dart:42:49 - undefined_method
+   info - Don't invoke 'print' in production code - lib\services\post_service.dart:54:7 - avoid_print
+  error - 2 positional arguments expected by 'post', but 1 found - lib\services\post_service.dart:62:75 - not_enough_positional_arguments
+   info - Don't invoke 'print' in production code - lib\services\post_service.dart:65:7 - avoid_print
+
+flutter : 16 issues 
+found. (ran in 0.9s)
+Au caractère Ligne:1 : 
+1
++ flutter analyze 2>&1 
+| Out-File -FilePath 
+analyze_utf8.txt 
+-Encoding  ...
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (16 issues fou   
+ nd. (ran in 0.9s):    
+String) [], Remote    
+Exception
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 

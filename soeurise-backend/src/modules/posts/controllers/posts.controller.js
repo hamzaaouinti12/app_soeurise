@@ -1,0 +1,1066 @@
+const Post = require("../models/Post");
+const User = require("../../users/models/User");
+const {
+  canViewerSeeAuthorGlobalContent,
+  filterGlobalPostsForViewer,
+  countVisibleGlobalPosts,
+} = require("../../../utils/privacy");
+const notificationsService = require("../../notifications/services/notifications.service");
+
+function computeCommentsCount(post) {
+  if (!post || !Array.isArray(post.comments)) return 0;
+  return post.comments.reduce((acc, c) => acc + 1 + (c.replies ? c.replies.length : 0), 0);
+}
+
+function extractHashtags(text) {
+  if (!text) return [];
+  const matches = text.match(/#[A-Za-z0-9_]+/g) || [];
+  const tags = matches.map((t) => t.slice(1).toLowerCase());
+  return [...new Set(tags)];
+}
+
+/**
+ * @desc    Get paginated feed of posts (global or community)
+ * @route   GET /api/posts
+ * @access  Private (auth required)
+ */
+exports.getFeed = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = {};
+    if (req.query.communityId) {
+      query.communityId = req.query.communityId;
+    } else {
+      query.communityId = null;
+    }
+
+    const posts = await Post.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("author", "firstName lastName username avatarUrl")
+      .populate("communityId", "name imageUrl");
+
+    posts.forEach((post) => {
+      post._currentUser = req.user;
+    });
+
+    let data = posts;
+    let total;
+    if (!req.query.communityId) {
+      data = await filterGlobalPostsForViewer(posts, req.user._id);
+      total = await countVisibleGlobalPosts(req.user._id);
+    } else {
+      total = await Post.countDocuments(query);
+    }
+
+    res.json({
+      success: true,
+      data,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get public posts for a user
+ * @route   GET /api/posts/user/:userId
+ * @access  Private
+ */
+exports.getUserPosts = async (req, res, next) => {
+  try {
+    const userId = req.params.userId;
+    const user = await User.findById(userId).select("accountPrivacy followers");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Utilisateur introuvable" });
+    }
+
+    const isSelf = req.user._id.toString() === userId.toString();
+    const canView = isSelf || canViewerSeeAuthorGlobalContent(req.user._id, user);
+    if (!canView) {
+      return res.status(403).json({
+        success: false,
+        message: "Publication non accessible (profil privé)",
+      });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = { author: userId, communityId: null };
+
+    const posts = await Post.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("author", "firstName lastName username avatarUrl")
+      .populate("communityId", "name imageUrl");
+
+    posts.forEach((post) => {
+      post._currentUser = req.user;
+    });
+
+    const total = await Post.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: posts,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get subscription feed (posts from followed users only)
+ * @route   GET /api/posts/subscriptions
+ * @access  Private
+ */
+exports.getSubscriptionFeed = async (req, res, next) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const currentUser = await User.findById(req.user._id).select("following");
+    const followingIds = currentUser.following || [];
+
+    if (followingIds.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        pagination: { page, limit, total: 0, pages: 0 },
+      });
+    }
+
+    const query = { author: { $in: followingIds }, communityId: null };
+
+    const posts = await Post.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("author", "firstName lastName username avatarUrl")
+      .populate("communityId", "name imageUrl");
+
+    posts.forEach((post) => {
+      post._currentUser = req.user;
+    });
+
+    const total = await Post.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: posts,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Create a new post
+ * @route   POST /api/posts
+ * @access  Private (auth required)
+ */
+exports.createPost = async (req, res, next) => {
+  try {
+    const { content, communityId } = req.body;
+    let imageUrl = "";
+
+    if (req.file) {
+      imageUrl = `/uploads/posts/${req.file.filename}`;
+    }
+
+    const newPost = await Post.create({
+      author: req.user._id,
+      content,
+      hashtags: extractHashtags(content),
+      image: imageUrl,
+      communityId: communityId || null,
+    });
+
+    const populatedPost = await Post.findById(newPost._id).populate(
+      "author",
+      "firstName lastName username avatarUrl"
+    );
+
+    res.status(201).json({
+      success: true,
+      data: populatedPost,
+      message: "Post publié avec succès",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Toggle Like on a post
+ * @route   POST /api/posts/:id/like
+ * @access  Private
+ */
+exports.toggleLike = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (!post.communityId && !canViewerSeeAuthorGlobalContent(req.user._id, post.author)) {
+      return res.status(403).json({
+        success: false,
+        message: "Publication non accessible (profil privé)",
+      });
+    }
+
+    const userId = req.user._id;
+    const isLiked = post.likedBy.includes(userId);
+
+    if (isLiked) {
+      post.likedBy.pull(userId);
+      post.likesCount = Math.max(0, post.likesCount - 1);
+    } else {
+      post.likedBy.push(userId);
+      post.likesCount += 1;
+    }
+
+    await post.save();
+
+    // Trigger notification if liked
+    if (!isLiked && post.author._id.toString() !== userId.toString()) {
+      await notificationsService.createNotification({
+        recipient: post.author._id,
+        sender: userId,
+        type: "like",
+        post: post._id,
+        text: `${req.user.username} a aimé votre publication`,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: isLiked ? "Post unliked" : "Post liked",
+      data: { likesCount: post.likesCount, isLiked: !isLiked },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get comments for a post
+ * @route   GET /api/posts/:id/comments
+ * @access  Private
+ */
+exports.getComments = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id)
+      .populate("author")
+      .populate("comments.author", "firstName lastName username avatarUrl")
+      .populate("comments.replies.author", "firstName lastName username avatarUrl");
+
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (!post.communityId && !canViewerSeeAuthorGlobalContent(req.user._id, post.author)) {
+      return res.status(403).json({
+        success: false,
+        message: "Publication non accessible (profil privé)",
+      });
+    }
+
+    // Filter hidden comments
+    // Post owner can see all comments
+    // Comment author can see their own hidden comment
+    const isPostOwner = post.author._id.toString() === req.user._id.toString();
+    
+    let filteredComments = post.comments.filter(c => {
+      if (!c.isHidden) return true;
+      if (isPostOwner) return true;
+      if (c.author && c.author._id.toString() === req.user._id.toString()) return true;
+      return false;
+    });
+
+    // Filter replies and map to include isLiked/likesCount
+    const userId = req.user._id.toString();
+    
+    const processedComments = filteredComments.map(c => {
+      const cObj = c.toObject();
+      
+      // Filter replies
+      const filteredReplies = c.replies.filter(r => {
+        if (!r.isHidden) return true;
+        if (isPostOwner) return true;
+        if (r.author && r.author._id.toString() === req.user._id.toString()) return true;
+        return false;
+      });
+
+      cObj.isLiked = c.likes.some(id => id.toString() === userId);
+      cObj.likesCount = c.likes.length;
+      
+      cObj.replies = filteredReplies.map(r => {
+        const rObj = r.toObject ? r.toObject() : r;
+        rObj.isLiked = r.likes.some(id => id.toString() === userId);
+        rObj.likesCount = r.likes.length;
+        return rObj;
+      });
+      
+      return cObj;
+    });
+
+    // Sort: Pinned first, then by date desc
+    processedComments.sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return b.createdAt - a.createdAt;
+    });
+
+    res.json({ success: true, data: processedComments });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Add a comment to a post
+ * @route   POST /api/posts/:id/comments
+ * @access  Private
+ */
+exports.addComment = async (req, res, next) => {
+  try {
+    const { content } = req.body;
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: "Le contenu est requis" });
+    }
+
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (!post.communityId && !canViewerSeeAuthorGlobalContent(req.user._id, post.author)) {
+      return res.status(403).json({
+        success: false,
+        message: "Publication non accessible (profil privé)",
+      });
+    }
+
+    if (post.commentsDisabled) {
+      return res.status(403).json({
+        success: false,
+        message: "Les commentaires sont désactivés pour cette publication",
+      });
+    }
+
+    post.comments.push({
+      author: req.user._id,
+      content: content.trim(),
+    });
+    post.commentsCount = computeCommentsCount(post);
+    await post.save();
+
+    // Trigger notification
+    if (post.author._id.toString() !== req.user._id.toString()) {
+      await notificationsService.createNotification({
+        recipient: post.author._id,
+        sender: req.user._id,
+        type: "comment",
+        post: post._id,
+        text: `${req.user.username} a commenté votre publication`,
+      });
+    }
+
+    // Re-fetch to populate
+    const updated = await Post.findById(post._id)
+      .populate("comments.author", "firstName lastName username avatarUrl");
+
+    const newComment = updated.comments[updated.comments.length - 1].toObject();
+    newComment.isLiked = false;
+    newComment.likesCount = 0;
+
+    res.status(201).json({
+      success: true,
+      data: newComment,
+      message: "Commentaire ajouté",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Reply to a comment
+ * @route   POST /api/posts/:id/comments/:commentId/reply
+ * @access  Private
+ */
+exports.replyToComment = async (req, res, next) => {
+  try {
+    const { content } = req.body;
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: "Le contenu est requis" });
+    }
+
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (!post.communityId && !canViewerSeeAuthorGlobalContent(req.user._id, post.author)) {
+      return res.status(403).json({
+        success: false,
+        message: "Publication non accessible (profil privé)",
+      });
+    }
+
+    if (post.commentsDisabled) {
+      return res.status(403).json({
+        success: false,
+        message: "Les commentaires sont désactivés pour cette publication",
+      });
+    }
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment) {
+      return res.status(404).json({ success: false, message: "Commentaire introuvable" });
+    }
+
+    const replyToId = req.body.replyToId ? req.body.replyToId.toString() : null;
+    let replyTarget = null;
+    if (replyToId) {
+      const targetReply = comment.replies.id(replyToId);
+      if (!targetReply) {
+        return res.status(404).json({
+          success: false,
+          message: "Réponse cible introuvable",
+        });
+      }
+      replyTarget = targetReply;
+    }
+
+    comment.replies.push({
+      author: req.user._id,
+      content: content.trim(),
+      replyTo: replyToId || null,
+    });
+    post.commentsCount = computeCommentsCount(post);
+    await post.save();
+
+    // Trigger notification for the comment author
+    if (comment.author.toString() !== req.user._id.toString()) {
+      await notificationsService.createNotification({
+        recipient: comment.author,
+        sender: req.user._id,
+        type: "reply",
+        post: post._id,
+        comment: comment._id,
+        text: `${req.user.username} a répondu à votre commentaire`,
+      });
+    }
+
+    // If replying to a reply, notify that reply's author too
+    if (
+      replyTarget &&
+      replyTarget.author &&
+      replyTarget.author.toString() !== req.user._id.toString() &&
+      replyTarget.author.toString() !== comment.author.toString()
+    ) {
+      await notificationsService.createNotification({
+        recipient: replyTarget.author,
+        sender: req.user._id,
+        type: "reply",
+        post: post._id,
+        comment: comment._id,
+        text: `${req.user.username} a répondu à votre réponse`,
+      });
+    }
+
+    const updated = await Post.findById(post._id)
+      .populate("comments.replies.author", "firstName lastName username avatarUrl");
+
+    const updatedComment = updated.comments.id(req.params.commentId);
+    const newReply = updatedComment.replies[updatedComment.replies.length - 1].toObject();
+    newReply.isLiked = false;
+    newReply.likesCount = 0;
+
+    res.status(201).json({
+      success: true,
+      data: newReply,
+      message: "Réponse ajoutée",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Like/unlike a comment
+ * @route   POST /api/posts/:id/comments/:commentId/like
+ * @access  Private
+ */
+exports.likeComment = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (!post.communityId && !canViewerSeeAuthorGlobalContent(req.user._id, post.author)) {
+      return res.status(403).json({
+        success: false,
+        message: "Publication non accessible (profil privé)",
+      });
+    }
+
+    let comment = post.comments.id(req.params.commentId);
+    
+    // Search in replies if not found in top-level comments
+    if (!comment) {
+      for (const c of post.comments) {
+        const reply = c.replies.id(req.params.commentId);
+        if (reply) {
+          comment = reply;
+          break;
+        }
+      }
+    }
+
+    if (!comment) {
+      return res.status(404).json({ success: false, message: "Commentaire introuvable" });
+    }
+
+    const userId = req.user._id;
+    const isLiked = comment.likes.includes(userId);
+
+    if (isLiked) {
+      comment.likes.pull(userId);
+    } else {
+      comment.likes.push(userId);
+    }
+
+    await post.save();
+
+    res.json({
+      success: true,
+      data: { likesCount: comment.likes.length, isLiked: !isLiked },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Share a post (increment share count)
+ * @route   POST /api/posts/:id/share
+ * @access  Private
+ */
+exports.sharePost = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (!post.communityId && !canViewerSeeAuthorGlobalContent(req.user._id, post.author)) {
+      return res.status(403).json({
+        success: false,
+        message: "Publication non accessible (profil privé)",
+      });
+    }
+
+    post.sharesCount += 1;
+    await post.save();
+
+    res.json({
+      success: true,
+      data: { sharesCount: post.sharesCount },
+      message: "Post partagé",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete a post
+ * @route   DELETE /api/posts/:id
+ * @access  Private
+ */
+exports.deletePost = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (post.author._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Vous ne pouvez supprimer que vos propres publications",
+      });
+    }
+
+    await Post.findByIdAndDelete(req.params.id);
+
+    res.json({ success: true, message: "Post supprimé" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update a post
+ * @route   PUT /api/posts/:id
+ * @access  Private
+ */
+exports.updatePost = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (post.author._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Vous ne pouvez modifier que vos propres publications",
+      });
+    }
+
+    const content = req.body.content?.toString() ?? "";
+    if (!content.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Le contenu ne peut pas etre vide",
+      });
+    }
+
+    post.content = content.trim();
+    post.hashtags = extractHashtags(post.content);
+    await post.save();
+
+    const populated = await Post.findById(post._id)
+      .populate("author", "firstName lastName username avatarUrl")
+      .populate("communityId", "name imageUrl");
+    if (populated) populated._currentUser = req.user;
+
+    res.json({ success: true, data: populated, message: "Post mis a jour" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Toggle pin on a post
+ * @route   POST /api/posts/:id/pin
+ * @access  Private
+ */
+exports.togglePinPost = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (post.author._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "Vous ne pouvez epingler que vos propres publications",
+      });
+    }
+
+    post.isPinned = !post.isPinned;
+    await post.save();
+
+    res.json({
+      success: true,
+      data: { isPinned: post.isPinned },
+      message: post.isPinned ? "Post epingle" : "Post desepingle",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Toggle save/unsave a post
+ * @route   POST /api/posts/:id/save
+ * @access  Private
+ */
+exports.toggleSave = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id).populate("author");
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Post introuvable" });
+    }
+
+    if (!post.communityId && !canViewerSeeAuthorGlobalContent(req.user._id, post.author)) {
+      return res.status(403).json({
+        success: false,
+        message: "Publication non accessible (profil prive)",
+      });
+    }
+
+    const user = await User.findById(req.user._id).select("savedPosts");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Utilisateur introuvable" });
+    }
+
+    const postId = post._id.toString();
+    const alreadySaved = user.savedPosts.some((id) => id.toString() === postId);
+
+    if (alreadySaved) {
+      user.savedPosts.pull(post._id);
+    } else {
+      user.savedPosts.push(post._id);
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      data: {
+        isSaved: !alreadySaved,
+        savedCount: user.savedPosts.length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get saved posts
+ * @route   GET /api/posts/saved
+ * @access  Private
+ */
+exports.getSavedPosts = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select("savedPosts");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Utilisateur introuvable" });
+    }
+
+    const savedIds = user.savedPosts || [];
+    if (!savedIds.length) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const posts = await Post.find({ _id: { $in: savedIds } })
+      .populate("author", "firstName lastName username avatarUrl")
+      .populate("communityId", "name imageUrl");
+
+    posts.forEach((post) => {
+      post._currentUser = req.user;
+    });
+
+    let data = posts;
+    data = await filterGlobalPostsForViewer(data, req.user._id);
+
+    const orderMap = new Map(savedIds.map((id, idx) => [id.toString(), idx]));
+    data.sort((a, b) => (orderMap.get(a._id.toString()) ?? 0) - (orderMap.get(b._id.toString()) ?? 0));
+
+    res.json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Toggle follow/unfollow a user
+ * @route   POST /api/users/:id/follow
+ * @access  Private
+ */
+exports.toggleFollow = async (req, res, next) => {
+  try {
+    const targetUserId = req.params.id;
+    const currentUserId = req.user._id;
+
+    if (targetUserId === currentUserId.toString()) {
+      return res.status(400).json({ success: false, message: "Vous ne pouvez pas vous suivre vous-même" });
+    }
+
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: "Utilisateur introuvable" });
+    }
+
+    const currentUser = await User.findById(currentUserId);
+    const isFollowing = currentUser.following.some((id) => id.toString() === targetUserId);
+
+    // Déjà abonné → se désabonner
+    if (isFollowing) {
+      currentUser.following.pull(targetUserId);
+      targetUser.followers.pull(currentUserId);
+      targetUser.pendingFollowRequests.pull(currentUserId);
+      await currentUser.save();
+      await targetUser.save();
+      return res.json({
+        success: true,
+        data: {
+          isFollowing: false,
+          followRequestSent: false,
+          followersCount: targetUser.followers.length,
+          followingCount: currentUser.following.length,
+          userId: targetUserId,
+        },
+        message: "Désabonné",
+      });
+    }
+
+    const isPrivate = targetUser.accountPrivacy === "private";
+    const pending = (targetUser.pendingFollowRequests || []).some(
+      (id) => id.toString() === currentUserId.toString()
+    );
+
+    if (isPrivate) {
+      if (pending) {
+        // Annuler la demande
+        targetUser.pendingFollowRequests.pull(currentUserId);
+        await targetUser.save();
+        return res.json({
+          success: true,
+          data: {
+            isFollowing: false,
+            followRequestSent: false,
+            followersCount: targetUser.followers.length,
+            followingCount: currentUser.following.length,
+            userId: targetUserId,
+          },
+          message: "Demande annulée",
+        });
+      }
+      targetUser.pendingFollowRequests.push(currentUserId);
+      await targetUser.save();
+
+      // Trigger notification for follow request
+      await notificationsService.createNotification({
+        recipient: targetUserId,
+        sender: currentUserId,
+        type: "follow",
+        text: `${req.user.username} souhaite vous suivre`,
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          isFollowing: false,
+          followRequestSent: true,
+          followersCount: targetUser.followers.length,
+          followingCount: currentUser.following.length,
+          userId: targetUserId,
+        },
+        message: "Demande d'abonnement envoyée",
+      });
+    }
+
+    // Compte public : abonnement immédiat
+    currentUser.following.push(targetUserId);
+    targetUser.followers.push(currentUserId);
+    await currentUser.save();
+    await targetUser.save();
+
+    // Trigger notification
+    await notificationsService.createNotification({
+      recipient: targetUserId,
+      sender: currentUserId,
+      type: "follow",
+      text: `${req.user.username} a commencé à vous suivre`,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        isFollowing: true,
+        followRequestSent: false,
+        followersCount: targetUser.followers.length,
+        followingCount: currentUser.following.length,
+        userId: targetUserId,
+      },
+      message: "Abonné",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update a comment
+ * @route   PUT /api/posts/:id/comments/:commentId
+ */
+exports.updateComment = async (req, res, next) => {
+  try {
+    const { content } = req.body;
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ success: false, message: "Post introuvable" });
+
+    let comment = post.comments.id(req.params.commentId);
+    
+    // Search in replies if not found in top-level comments
+    if (!comment) {
+      for (const c of post.comments) {
+        const reply = c.replies.id(req.params.commentId);
+        if (reply) {
+          comment = reply;
+          break;
+        }
+      }
+    }
+
+    if (!comment) return res.status(404).json({ success: false, message: "Commentaire introuvable" });
+
+    if (comment.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Action non autorisée" });
+    }
+
+    comment.content = content;
+    await post.save();
+    res.json({ success: true, message: "Commentaire modifié", data: comment });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete a comment
+ * @route   DELETE /api/posts/:id/comments/:commentId
+ */
+exports.deleteComment = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ success: false, message: "Post introuvable" });
+
+    let comment = post.comments.id(req.params.commentId);
+    let parentComment = null;
+
+    if (!comment) {
+      for (const c of post.comments) {
+        const reply = c.replies.id(req.params.commentId);
+        if (reply) {
+          comment = reply;
+          parentComment = c;
+          break;
+        }
+      }
+    }
+
+    if (!comment) return res.status(404).json({ success: false, message: "Commentaire introuvable" });
+
+    const isPostOwner = post.author.toString() === req.user._id.toString();
+    const isCommentAuthor = comment.author.toString() === req.user._id.toString();
+
+    if (!isPostOwner && !isCommentAuthor) {
+      return res.status(403).json({ success: false, message: "Action non autorisée" });
+    }
+
+    if (parentComment) {
+      parentComment.replies.pull(req.params.commentId);
+    } else {
+      post.comments.pull(req.params.commentId);
+    }
+
+    post.commentsCount = computeCommentsCount(post);
+    await post.save();
+    res.json({ success: true, message: "Commentaire supprimé" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Toggle hide/unhide a comment
+ * @route   POST /api/posts/:id/comments/:commentId/hide
+ */
+exports.toggleHideComment = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ success: false, message: "Post introuvable" });
+
+    let comment = post.comments.id(req.params.commentId);
+    
+    if (!comment) {
+      for (const c of post.comments) {
+        const reply = c.replies.id(req.params.commentId);
+        if (reply) {
+          comment = reply;
+          break;
+        }
+      }
+    }
+
+    if (!comment) return res.status(404).json({ success: false, message: "Commentaire introuvable" });
+
+    const isPostOwner = post.author.toString() === req.user._id.toString();
+    const isCommentAuthor = comment.author.toString() === req.user._id.toString();
+
+    if (!isPostOwner && !isCommentAuthor) {
+      return res.status(403).json({ success: false, message: "Action non autorisée" });
+    }
+
+    comment.isHidden = !comment.isHidden;
+    await post.save();
+    res.json({ success: true, message: comment.isHidden ? "Commentaire masqué" : "Commentaire affiché", data: { isHidden: comment.isHidden } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Toggle pin/unpin a comment
+ * @route   POST /api/posts/:id/comments/:commentId/pin
+ */
+exports.togglePinComment = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ success: false, message: "Post introuvable" });
+
+    if (post.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Action réservée au propriétaire de la publication" });
+    }
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ success: false, message: "Commentaire introuvable" });
+
+    const wasPinned = comment.isPinned;
+    
+    // Unpin others if we are pinning this one
+    if (!wasPinned) {
+      post.comments.forEach(c => c.isPinned = false);
+    }
+    
+    comment.isPinned = !wasPinned;
+    await post.save();
+    res.json({ success: true, message: comment.isPinned ? "Commentaire épinglé" : "Commentaire désépinglé", data: { isPinned: comment.isPinned } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Toggle disable/enable comments for a post
+ * @route   POST /api/posts/:id/toggle-comments
+ */
+exports.toggleCommentsDisabled = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) return res.status(404).json({ success: false, message: "Post introuvable" });
+
+    if (post.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Action non autorisée" });
+    }
+
+    post.commentsDisabled = !post.commentsDisabled;
+    await post.save();
+    res.json({ success: true, message: post.commentsDisabled ? "Commentaires désactivés" : "Commentaires activés", data: { commentsDisabled: post.commentsDisabled } });
+  } catch (error) {
+    next(error);
+  }
+};
