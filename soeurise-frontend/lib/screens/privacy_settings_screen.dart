@@ -89,7 +89,7 @@ class _PrivacySettingsScreenState extends State<PrivacySettingsScreen> {
                           style: AppTextStyles.caption,
                         ),
                         value: isPrivate,
-                        activeThumbColor: AppColors.primary,
+                        activeColor: AppColors.primary,
                         onChanged: (v) => _setPrivacy(v),
                       ),
                   ],

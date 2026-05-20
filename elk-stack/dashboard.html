@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soeurise Analytics Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #0f0f1a; color: #e2e8f0; min-height: 100vh; }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%);
+    padding: 24px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(139,92,246,0.3);
+    box-shadow: 0 4px 30px rgba(139,92,246,0.2);
+  }
+  .logo { display: flex; align-items: center; gap: 14px; }
+  .logo-icon {
+    width: 48px; height: 48px; border-radius: 14px;
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; box-shadow: 0 0 20px rgba(139,92,246,0.5);
+  }
+  .logo h1 { font-size: 22px; font-weight: 800; background: linear-gradient(to right,#c4b5fd,#f9a8d4); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .logo p { font-size: 12px; color:#a78bfa; font-weight:400; }
+  .header-actions { display: flex; gap: 12px; align-items: center; }
+  .btn-kibana {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white; text-decoration: none; padding: 10px 20px;
+    border-radius: 10px; font-size: 13px; font-weight: 600;
+    transition: all 0.2s; box-shadow: 0 4px 15px rgba(139,92,246,0.4);
+  }
+  .btn-kibana:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139,92,246,0.6); }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3);
+    padding: 6px 14px; border-radius: 20px; font-size: 12px; color: #34d399;
+  }
+  .live-dot { width:8px; height:8px; border-radius:50%; background:#10b981; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+  /* MAIN */
+  main { padding: 32px 40px; max-width: 1400px; margin: 0 auto; }
+
+  /* SECTION TITLE */
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #8b5cf6; margin-bottom: 16px; }
+
+  /* KPI GRID */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px; }
+  .kpi-card {
+    background: linear-gradient(145deg, #1e1b4b 0%, #1a1730 100%);
+    border: 1px solid rgba(139,92,246,0.2); border-radius: 18px;
+    padding: 24px; position: relative; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none; color: inherit; display: block;
+  }
+  .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(139,92,246,0.25); border-color: rgba(139,92,246,0.5); }
+  .kpi-card::before {
+    content:''; position:absolute; top:-40px; right:-40px;
+    width:120px; height:120px; border-radius:50%;
+    background: radial-gradient(circle, var(--glow), transparent 70%);
+    opacity: 0.3;
+  }
+  .kpi-icon { font-size: 28px; margin-bottom: 12px; }
+  .kpi-label { font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+  .kpi-value { font-size: 36px; font-weight: 800; line-height: 1; }
+  .kpi-sub { font-size: 12px; color: #64748b; margin-top: 8px; }
+  .kpi-link { font-size: 11px; color: #8b5cf6; margin-top: 12px; display: flex; align-items: center; gap: 4px; }
+
+  /* CHARTS GRID */
+  .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .charts-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .chart-card {
+    background: linear-gradient(145deg, #1e1b4b 0%, #1a1730 100%);
+    border: 1px solid rgba(139,92,246,0.2); border-radius: 18px; padding: 24px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .chart-card:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(139,92,246,0.15); }
+  .chart-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .chart-title { font-size: 15px; font-weight: 700; color: #e2e8f0; }
+  .chart-subtitle { font-size: 11px; color: #64748b; margin-top: 3px; }
+  .kibana-link {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.3);
+    color: #a78bfa; text-decoration: none; padding: 5px 10px;
+    border-radius: 8px; font-size: 11px; font-weight: 600;
+    transition: all 0.2s; white-space: nowrap;
+  }
+  .kibana-link:hover { background: rgba(139,92,246,0.25); color: #c4b5fd; }
+  .chart-container { position: relative; }
+
+  /* COMMUNITY TABLE */
+  .community-table { width: 100%; border-collapse: collapse; }
+  .community-table th { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; padding: 8px 12px; text-align: left; border-bottom: 1px solid rgba(139,92,246,0.15); }
+  .community-table td { padding: 12px 12px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .community-table tr:last-child td { border-bottom: none; }
+  .community-table tr:hover td { background: rgba(139,92,246,0.05); }
+  .progress-bar { height: 6px; border-radius: 3px; background: rgba(139,92,246,0.15); margin-top: 4px; }
+  .progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(to right, #8b5cf6, #ec4899); }
+
+  /* FOOTER */
+  footer { text-align: center; padding: 24px; color: #475569; font-size: 12px; border-top: 1px solid rgba(139,92,246,0.1); margin-top: 20px; }
+  footer a { color: #8b5cf6; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">💜</div>
+    <div>
+      <h1>Soeurise Analytics</h1>
+      <p>Tableau de bord — Données utilisateurs</p>
+    </div>
+  </div>
+  <div class="header-actions">
+    <div class="live-badge"><div class="live-dot"></div> Live · Elasticsearch</div>
+    <a class="btn-kibana" href="http://localhost:5601/app/dashboards#/view/92e43711-d649-4bd7-b6ba-fb0dc6147ac4" target="_blank">
+      🔗 Ouvrir Kibana
+    </a>
+  </div>
+</header>
+
+<main>
+  <!-- KPIs -->
+  <div class="section-title">📊 Indicateurs Clés de Performance</div>
+  <div class="kpi-grid">
+
+    <a class="kpi-card" href="http://localhost:5601/app/dashboards#/view/301f2952-a960-4507-b2f3-a0eaf410b233" target="_blank" style="--glow:#8b5cf6;">
+      <div class="kpi-icon">👥</div>
+      <div class="kpi-label">Total Utilisateurs</div>
+      <div class="kpi-value" style="background:linear-gradient(to right,#8b5cf6,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">10 000</div>
+      <div class="kpi-sub">indexés dans Elasticsearch</div>
+      <div class="kpi-link">Voir dans Kibana →</div>
+    </a>
+
+    <a class="kpi-card" href="http://localhost:5601/app/dashboards#/view/301f2952-a960-4507-b2f3-a0eaf410b233" target="_blank" style="--glow:#10b981;">
+      <div class="kpi-icon">🎓</div>
+      <div class="kpi-label">Masterclasses Achetées</div>
+      <div class="kpi-value" style="background:linear-gradient(to right,#10b981,#6ee7b7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">50 096</div>
+      <div class="kpi-sub">total cumulé · moy. 5/user</div>
+      <div class="kpi-link">Voir dans Kibana →</div>
+    </a>
+
+    <a class="kpi-card" href="http://localhost:5601/app/dashboards#/view/301f2952-a960-4507-b2f3-a0eaf410b233" target="_blank" style="--glow:#f59e0b;">
+      <div class="kpi-icon">📅</div>
+      <div class="kpi-label">Événements Inscrits</div>
+      <div class="kpi-value" style="background:linear-gradient(to right,#f59e0b,#fcd34d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">74 927</div>
+      <div class="kpi-sub">total cumulé · moy. 7.5/user</div>
+      <div class="kpi-link">Voir dans Kibana →</div>
+    </a>
+
+    <a class="kpi-card" href="http://localhost:5601/app/dashboards#/view/301f2952-a960-4507-b2f3-a0eaf410b233" target="_blank" style="--glow:#ec4899;">
+      <div class="kpi-icon">🔥</div>
+      <div class="kpi-label">Taux d'Engagement Moyen</div>
+      <div class="kpi-value" style="background:linear-gradient(to right,#ec4899,#f9a8d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">50.07%</div>
+      <div class="kpi-sub">sur 10 000 utilisatrices</div>
+      <div class="kpi-link">Voir dans Kibana →</div>
+    </a>
+  </div>
+
+  <!-- ROW 1: Croissance + Statuts -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">📈 Croissance des Inscriptions</div>
+          <div class="chart-subtitle">Nombre d'inscriptions par mois (Mai 2025 – Avr 2026)</div>
+        </div>
+        <a class="kibana-link" href="http://localhost:5601/app/dashboards#/view/92e43711-d649-4bd7-b6ba-fb0dc6147ac4" target="_blank">🔗 Kibana</a>
+      </div>
+      <div class="chart-container" style="height:240px;">
+        <canvas id="growthChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">💎 Répartition des Comptes</div>
+          <div class="chart-subtitle">Standard · Premium · Admin</div>
+        </div>
+        <a class="kibana-link" href="http://localhost:5601/app/dashboards#/view/92e43711-d649-4bd7-b6ba-fb0dc6147ac4" target="_blank">🔗 Kibana</a>
+      </div>
+      <div class="chart-container" style="height:240px;">
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Engagement + Communautés + Posts -->
+  <div class="charts-row-3">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">🏘️ Engagement / Communauté</div>
+          <div class="chart-subtitle">Taux d'engagement moyen (%)</div>
+        </div>
+        <a class="kibana-link" href="http://localhost:5601/app/dashboards#/view/92e43711-d649-4bd7-b6ba-fb0dc6147ac4" target="_blank">🔗 Kibana</a>
+      </div>
+      <div class="chart-container" style="height:220px;">
+        <canvas id="engagementChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">🏆 Membres par Communauté</div>
+          <div class="chart-subtitle">Top 5 communautés actives</div>
+        </div>
+        <a class="kibana-link" href="http://localhost:5601/app/dashboards#/view/92e43711-d649-4bd7-b6ba-fb0dc6147ac4" target="_blank">🔗 Kibana</a>
+      </div>
+      <div style="margin-top:8px;">
+        <table class="community-table">
+          <thead><tr><th>Communauté</th><th>Membres</th><th>%</th></tr></thead>
+          <tbody>
+            <tr><td>Spiritualité<div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div></td><td><b>2 073</b></td><td style="color:#a78bfa">20.7%</td></tr>
+            <tr><td>Bien-être<div class="progress-bar"><div class="progress-fill" style="width:97%"></div></div></td><td><b>2 013</b></td><td style="color:#a78bfa">20.1%</td></tr>
+            <tr><td>Oukhty Business<div class="progress-bar"><div class="progress-fill" style="width:96%"></div></div></td><td><b>1 984</b></td><td style="color:#a78bfa">19.8%</td></tr>
+            <tr><td>Développement Personnel<div class="progress-bar"><div class="progress-fill" style="width:94%"></div></div></td><td><b>1 958</b></td><td style="color:#a78bfa">19.6%</td></tr>
+            <tr><td>Maternité<div class="progress-bar"><div class="progress-fill" style="width:93%"></div></div></td><td><b>1 938</b></td><td style="color:#a78bfa">19.4%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">📝 Activité des Posts</div>
+          <div class="chart-subtitle">Répartition du nombre de posts</div>
+        </div>
+        <a class="kibana-link" href="http://localhost:5601/app/dashboards#/view/92e43711-d649-4bd7-b6ba-fb0dc6147ac4" target="_blank">🔗 Kibana</a>
+      </div>
+      <div class="chart-container" style="height:220px;">
+        <canvas id="postsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Soeurise Analytics Dashboard · Données issues d'<a href="http://localhost:9200" target="_blank">Elasticsearch</a> · Visualisations complètes sur <a href="http://localhost:5601" target="_blank">Kibana</a>
+</footer>
+
+<script>
+const purple = '#8b5cf6';
+const pink   = '#ec4899';
+const teal   = '#14b8a6';
+const amber  = '#f59e0b';
+const indigo = '#6366f1';
+const green  = '#10b981';
+
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = 'Inter';
+
+// --- Growth Chart ---
+new Chart(document.getElementById('growthChart'), {
+  type: 'line',
+  data: {
+    labels: ['Jan 25','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc','Jan 26','Fév','Mar','Avr 26'],
+    datasets: [{
+      label: 'Inscriptions',
+      data: [613,548,612,535,597,578,605,619,612,651,648,631,703,679,643,535],
+      borderColor: purple,
+      backgroundColor: 'rgba(139,92,246,0.1)',
+      borderWidth: 2.5,
+      pointBackgroundColor: purple,
+      pointRadius: 4,
+      pointHoverRadius: 7,
+      fill: true,
+      tension: 0.4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { font: { size: 11 } } },
+      y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { font: { size: 11 } }, beginAtZero: false }
+    }
+  }
+});
+
+// --- Status Donut ---
+new Chart(document.getElementById('statusChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Standard', 'Premium', 'Admin'],
+    datasets: [{
+      data: [5735, 2900, 1365],
+      backgroundColor: [purple, pink, teal],
+      borderColor: '#1a1730',
+      borderWidth: 4,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '68%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { padding: 16, usePointStyle: true, pointStyleWidth: 8, font: { size: 12 } }
+      }
+    }
+  }
+});
+
+// --- Engagement Bar ---
+new Chart(document.getElementById('engagementChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Bien-être', 'Maternité', 'Spiritualité', 'Oukhty Biz', 'Développ.'],
+    datasets: [{
+      label: 'Taux (%)',
+      data: [50.6, 50.3, 50.1, 50.0, 49.5],
+      backgroundColor: [purple, pink, teal, amber, green],
+      borderRadius: 8, borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.04)' }, min: 48, max: 53, ticks: { font: { size: 11 } } },
+      y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+// --- Posts Doughnut ---
+new Chart(document.getElementById('postsChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['0 posts (inactifs)', '1–20 posts', '21–50 posts', '51–100 posts', '100+ posts'],
+    datasets: [{
+      data: [3980, 1740, 1820, 1460, 1000],
+      backgroundColor: ['#334155', green, teal, purple, pink],
+      borderColor: '#1a1730',
+      borderWidth: 4,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { padding: 10, usePointStyle: true, pointStyleWidth: 8, font: { size: 10 } }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>

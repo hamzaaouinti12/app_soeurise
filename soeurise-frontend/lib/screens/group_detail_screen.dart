@@ -445,7 +445,7 @@ class _GroupDetailScreenState extends State<GroupDetailScreen>
                   ),
                   Switch(
                     value: _isPublicEdit,
-                    activeThumbColor: AppColors.primary,
+                    activeColor: AppColors.primary,
                     onChanged: (v) => setState(() => _isPublicEdit = v),
                   ),
                 ],

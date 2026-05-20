@@ -141,7 +141,7 @@ class _CommunitiesScreenState extends State<CommunitiesScreen> {
                         ),
                         Switch(
                           value: isPublic,
-                          activeThumbColor: AppColors.primary,
+                          activeColor: AppColors.primary,
                           onChanged: (val) => setState(() => isPublic = val),
                         ),
                       ],

@@ -1,0 +1,16 @@
+{
+  "name": "elk-stack",
+  "version": "1.0.0",
+  "main": "ingest_data.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@elastic/elasticsearch": "^8.19.1",
+    "xlsx": "^0.18.5"
+  }
+}

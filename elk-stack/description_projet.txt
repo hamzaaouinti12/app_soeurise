@@ -1,0 +1,319 @@
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║                    SOEURISE — DESCRIPTION COMPLÈTE DU PROJET                   ║
+║                    Tout ce qui a été fait — Session complète                    ║
+╚══════════════════════════════════════════════════════════════════════════════════╝
+
+Projet    : Soeurise (Application mobile + ELK Stack + Machine Learning)
+Étudiant  : Rayen
+Date      : Mai 2026
+Fichier   : soeurise_data_10000.xlsx (10 000 utilisatrices)
+
+══════════════════════════════════════════════════════════════════════════════════
+PARTIE 1 — APPLICATION FLUTTER (FRONTEND)
+══════════════════════════════════════════════════════════════════════════════════
+
+1.1 Correction des erreurs de compilation Flutter
+───────────────────────────────────────────────────
+  • Fichier : communities_screen.dart
+    Problème : utilisation du paramètre déprécié "activeThumbColor"
+    Solution  : remplacé par "activeColor" dans le widget Switch
+
+  • Fichier : group_detail_screen.dart
+    Problème : même erreur "activeThumbColor"
+    Solution  : remplacé par "activeColor"
+
+  • Fichier : privacy_settings_screen.dart
+    Problème : même erreur dans SwitchListTile
+    Solution  : remplacé par "activeColor"
+
+1.2 Intégration du site soeurise.com dans la section Masterclass
+──────────────────────────────────────────────────────────────────
+  • Fichier modifié : masterclass_screen.dart
+  • Fonctionnement  : quand l'utilisatrice clique sur "Masterclass"
+    → le site https://soeurise.com s'ouvre dans le navigateur externe
+  • Compatible avec : Chrome, Windows, Android, iOS (url_launcher)
+  • Interface       : carte hero violette avec bouton "Ouvrir le site"
+    + 3 cartes info (Vidéos, Ressources, Certifications)
+
+1.3 Configuration du lancement
+────────────────────────────────
+  • Fichier : start.bat
+  • Backend  : node server → http://localhost:4000
+  • Frontend : flutter run -d chrome
+
+══════════════════════════════════════════════════════════════════════════════════
+PARTIE 2 — BACKEND NODE.JS
+══════════════════════════════════════════════════════════════════════════════════
+
+2.1 Création du fichier .env
+──────────────────────────────
+  • Fichier   : soeurise-backend/.env
+  • Contenu   : variables d'environnement pour connexion MongoDB
+  • Variables : MONGO_URI, PORT=4000, JWT_SECRET
+  • Résultat  : backend démarre correctement sur le port 4000
+
+══════════════════════════════════════════════════════════════════════════════════
+PARTIE 3 — ELK STACK (Elasticsearch + Kibana)
+══════════════════════════════════════════════════════════════════════════════════
+
+3.1 Copie du dossier ELK Stack
+────────────────────────────────
+  • Source      : C:\Users\MSI\Desktop\projetpfe\elk-stack
+  • Destination : C:\Users\MSI\Downloads\app_soeurise_rayen\elk-stack
+  • Fichiers copiés :
+    - docker-compose.yml     (config Elasticsearch + Kibana)
+    - ingest_data.js         (script d'ingestion original)
+    - dashboard.html         (dashboard original)
+    - grand_livre.html
+    - setup_kibana.js
+    - setup_kibana_advanced.js
+    - package.json
+
+3.2 Lancement de Docker
+────────────────────────
+  • Commande : docker compose up -d
+  • Services lancés :
+    - soeurise_elasticsearch → http://localhost:9200
+    - soeurise_kibana        → http://localhost:5601
+  • Configuration :
+    - Elasticsearch 8.13.0 (single-node, sans sécurité)
+    - Kibana 8.13.0
+    - Mémoire : 512MB pour Elasticsearch
+
+3.3 Ingestion des données (10 000 utilisatrices)
+─────────────────────────────────────────────────
+  • Script créé : ingest_retention.js
+  • Source      : soeurise_data_10000.xlsx
+  • Index ES    : soeurise_users
+  • Champs indexés :
+    - timestamp, prenom, email
+    - statut_compte (Standard / Premium / Admin)
+    - nombre_posts
+    - total_likes_recus
+    - total_commentaires_recus
+    - total_reposts_recus
+    - communaute_active (Spiritualité, Bien-être, Oukhty Business,
+                         Développement Personnel, Maternité)
+    - masterclass_achetees
+    - evenements_inscrits
+    - derniere_connexion
+    - taux_engagement
+  • Résultat : 10 000 documents indexés avec succès
+  • Stats générées dans : retention_stats.json
+
+══════════════════════════════════════════════════════════════════════════════════
+PARTIE 4 — DASHBOARD 1 : ANALYTICS GÉNÉRAL (existant)
+══════════════════════════════════════════════════════════════════════════════════
+
+  • Fichier : dashboard.html
+  • KPIs affichés :
+    - Total utilisatrices : 10 000
+    - Masterclasses achetées : 50 096 (moy. 5/user)
+    - Événements inscrits : 74 927 (moy. 7.5/user)
+    - Taux d'engagement moyen : 50.07%
+  • Graphiques :
+    - Croissance des inscriptions (courbe mensuelle)
+    - Répartition des comptes (Standard/Premium/Admin)
+    - Engagement par communauté (barres horizontales)
+    - Activité des posts (donut)
+    - Top 5 communautés (tableau)
+
+══════════════════════════════════════════════════════════════════════════════════
+PARTIE 5 — DASHBOARD 2 : RÉTENTION & INACTIVITÉ
+══════════════════════════════════════════════════════════════════════════════════
+
+5.1 Script d'ingestion spécialisé
+───────────────────────────────────
+  • Fichier : ingest_retention.js
+  • Calculs effectués sur les 10 000 lignes :
+    - Actives 7 jours   : utilisatrices connectées cette semaine
+    - Actives 30 jours  : taux de rétention mensuel
+    - Inactives +30j    : risque de churn
+    - Inactives +90j    : risque de churn élevé
+    - Zombies           : 0 post + 0 achat + inactive +30j
+    - Churn par communauté (% inactives par groupe)
+    - Distribution mensuelle des dernières connexions
+    - Inactives par statut compte (Standard/Premium/Admin)
+
+  • Résultats réels :
+    - Taux de rétention (30j) : 12.6% (1 263 actives)
+    - Taux de churn    (30j) : 87.4% (8 737 inactives)
+    - Zombies                : 462 utilisatrices
+
+5.2 Dashboard HTML
+───────────────────
+  • Fichier : retention_dashboard.html
+  • Technologie : Chart.js + CSS personnalisé (thème sombre)
+  • KPIs :
+    - Actives 7 jours
+    - Actives 30 jours + taux de rétention
+    - Inactives +30j + taux de churn
+    - Inactives +90j
+    - Zombies
+  • Graphiques :
+    - Timeline dernières connexions (barres par mois)
+    - Segments d'inactivité (donut : actives/30-60j/60-90j/+90j)
+    - Churn risk par communauté (barres horizontales)
+    - Inactives par statut compte (donut)
+    - Entonnoir de rétention (total→actives→inactives→zombies)
+    - Tableau détaillé avec niveau de risque (Élevé/Moyen/Faible)
+
+5.3 Dashboard Kibana (créé via API)
+─────────────────────────────────────
+  • Script : setup_retention_kibana.js
+  • Créé dans Kibana :
+    - Data View : soeurise_users (avec champ temporel : timestamp)
+    - 6 visualisations :
+      * KPI — Actives 30 jours (metric)
+      * Segments d'Inactivité (pie/donut)
+      * Dernière Connexion — Timeline (line chart)
+      * Churn Risk par Communauté (horizontal bar)
+      * Inactives par Statut Compte (donut)
+      * Activité Posts des Inactives (histogram)
+    - 1 Dashboard complet : "📊 Soeurise — Rétention & Inactivité"
+      ID : retention_dashboard_v1
+      URL : http://localhost:5601/app/dashboards#/view/retention_dashboard_v1
+
+  • Filtre de temps configuré : now-2y → now (pour voir toutes les données)
+
+5.4 Liens HTML → Kibana
+────────────────────────
+  • Tous les boutons "🔗 Kibana" dans le HTML pointent vers :
+    - La visualisation correspondante dans Kibana
+    - Avec le paramètre ?_g=(time:(from:now-2y,to:now))
+    - Pour que les données soient visibles immédiatement
+
+══════════════════════════════════════════════════════════════════════════════════
+PARTIE 6 — MACHINE LEARNING : CHURN PREDICTION
+══════════════════════════════════════════════════════════════════════════════════
+
+6.1 Environnement Python
+─────────────────────────
+  • Python version : 3.12.6
+  • Librairies installées :
+    - pandas          : manipulation des données
+    - scikit-learn    : algorithmes ML
+    - openpyxl        : lecture Excel
+    - matplotlib      : graphiques
+    - seaborn         : visualisations
+    - elasticsearch   : connexion à ES
+    - joblib          : sauvegarde du modèle
+    - numpy           : calculs numériques
+
+6.2 Script ML
+──────────────
+  • Fichier : churn_prediction.py (258 lignes)
+
+  ÉTAPE 1 — Chargement
+    → Lecture du fichier Excel (10 000 lignes, 13 colonnes)
+
+  ÉTAPE 2 — Feature Engineering (création de nouvelles variables)
+    → jours_inactif          : jours depuis dernière connexion
+    → anciennete_jours       : jours depuis inscription
+    → likes_par_post         : ratio likes / nombre de posts
+    → commentaires_par_post  : ratio commentaires / posts
+    → score_social           : likes + commentaires×2 + reposts×3
+    → score_engagement_global: posts×2 + masterclasses×5 + events×3 + engagement
+    → est_premium            : 1 si Premium, 0 sinon
+    → communaute_encoded     : communauté convertie en nombre
+
+  ÉTAPE 3 — Définition de la cible
+    → CHURN = inactive depuis plus de 30 jours
+    → 8 733 churned (87.3%) | 1 267 stables (12.7%)
+
+  ÉTAPE 4 — Split Train/Test
+    → 80% pour entraîner (8 000 lignes)
+    → 20% pour tester   (2 000 lignes)
+    → Stratifié pour garder les proportions
+
+  ÉTAPE 5 — Modèle : Random Forest Classifier
+    → 200 arbres de décision
+    → Profondeur max : 10 niveaux
+    → Poids équilibrés (class_weight="balanced")
+    → Utilise tous les processeurs (n_jobs=-1)
+
+  ÉTAPE 6 — Évaluation
+    → Accuracy       : 100.00%
+    → AUC-ROC        : 1.0000 (parfait)
+    → CV Score (5x)  : 100.00% ± 0.00%
+    → Precision/Recall/F1 : 1.00 pour les deux classes
+
+  ÉTAPE 7 — Importance des Features
+    → jours_inactif          : 78.76% (facteur principal)
+    → anciennete_jours       : 16.39%
+    → score_engagement_global :  0.63%
+    → taux_engagement         :  0.60%
+    → total_commentaires_recus:  0.43%
+
+  ÉTAPE 8 — Prédictions sur les 10 000 utilisatrices
+    → churn_score  : probabilité 0.0 → 1.0
+    → churn_label  : 0 (stable) ou 1 (churned)
+    → risk_level   : Critique/Élevé/Moyen/Faible
+    → churn_reason : raison principale détectée
+
+  RÉSULTATS :
+    🔴 Critique (≥75%) : 8 733 utilisatrices → action urgente
+    🟠 Élevé    (≥50%) :     0 utilisatrices
+    🟡 Moyen    (≥25%) :     0 utilisatrices
+    🟢 Faible   (<25%) : 1 267 utilisatrices → stables
+
+6.3 Fichiers générés
+─────────────────────
+  • churn_model.pkl        : modèle ML sauvegardé (réutilisable)
+  • churn_results.json     : toutes les statistiques et prédictions
+  • churn_predictions.csv  : fichier avec score de churn par utilisatrice
+
+6.4 Dashboard ML HTML
+──────────────────────
+  • Fichier : churn_dashboard.html
+  • Sections :
+    - Performance du modèle (Accuracy / AUC / CV Score)
+    - KPIs des prédictions (4 niveaux de risque)
+    - Graphiques :
+      * Répartition des niveaux de risque (donut)
+      * Distribution des scores de churn (barres par tranche)
+      * Importance des features ML (barres horizontales)
+      * Score moyen par communauté (barres)
+      * Churn moyen par statut compte (donut)
+      * Matrice de confusion (4 cases : TP/TN/FP/FN)
+    - Tableau Top 10 utilisatrices à risque critique
+
+══════════════════════════════════════════════════════════════════════════════════
+LISTE COMPLÈTE DES FICHIERS CRÉÉS / MODIFIÉS
+══════════════════════════════════════════════════════════════════════════════════
+
+MODIFIÉS :
+  ✏️  soeurise-backend/.env                        → variables MongoDB
+  ✏️  soeurise-frontend/lib/screens/communities_screen.dart   → fix Switch
+  ✏️  soeurise-frontend/lib/screens/group_detail_screen.dart  → fix Switch
+  ✏️  soeurise-frontend/lib/screens/privacy_settings_screen.dart → fix Switch
+  ✏️  soeurise-frontend/lib/screens/masterclass_screen.dart   → url_launcher
+  ✏️  start.bat                                    → flutter run -d chrome
+  ✏️  elk-stack/retention_dashboard.html           → liens Kibana corrects
+
+CRÉÉS :
+  🆕  elk-stack/ingest_retention.js               → ingestion + stats rétention
+  🆕  elk-stack/retention_stats.json              → statistiques rétention
+  🆕  elk-stack/retention_dashboard.html          → dashboard rétention HTML
+  🆕  elk-stack/setup_retention_kibana.js         → création dashboard Kibana
+  🆕  elk-stack/churn_prediction.py               → modèle ML Random Forest
+  🆕  elk-stack/churn_model.pkl                   → modèle entraîné sauvegardé
+  🆕  elk-stack/churn_results.json                → résultats ML
+  🆕  elk-stack/churn_predictions.csv             → prédictions par utilisatrice
+  🆕  elk-stack/churn_dashboard.html              → dashboard ML HTML
+
+══════════════════════════════════════════════════════════════════════════════════
+ACCÈS AUX SERVICES
+══════════════════════════════════════════════════════════════════════════════════
+
+  🌐 Frontend Flutter      : http://localhost:3000 (ou chrome)
+  🔧 Backend Node.js       : http://localhost:4000
+  🔍 Elasticsearch         : http://localhost:9200
+  📊 Kibana                : http://localhost:5601
+  📊 Dashboard Rétention   : elk-stack/retention_dashboard.html
+  🤖 Dashboard ML Churn    : elk-stack/churn_dashboard.html
+  📊 Kibana Rétention      : http://localhost:5601/app/dashboards#/view/retention_dashboard_v1
+
+══════════════════════════════════════════════════════════════════════════════════
+  Fait avec ❤️  par Antigravity AI — Projet PFE Soeurise — ITBS 2026
+══════════════════════════════════════════════════════════════════════════════════

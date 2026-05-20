@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soeurise — Diagrammes UML</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0f0f1a;
+    color: #f0f0f0;
+    min-height: 100vh;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1B2A4A 0%, #2d1b6e 100%);
+    border-bottom: 3px solid #C9A84C;
+    padding: 30px 40px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+  }
+
+  header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #C9A84C, #f0d890);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+
+  header p {
+    color: #a0b0cc;
+    font-size: 0.95rem;
+  }
+
+  nav {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+    flex-wrap: wrap;
+    background: #131325;
+    border-bottom: 1px solid #2a2a4a;
+  }
+
+  nav a {
+    color: #C9A84C;
+    text-decoration: none;
+    padding: 8px 18px;
+    border: 1px solid #C9A84C44;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    transition: all 0.3s;
+  }
+
+  nav a:hover {
+    background: #C9A84C;
+    color: #1B2A4A;
+    font-weight: 600;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  .diagram-section {
+    margin-bottom: 60px;
+    animation: fadeIn 0.5s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #C9A84C44;
+  }
+
+  .section-badge {
+    background: linear-gradient(135deg, #1B2A4A, #2d1b6e);
+    border: 2px solid #C9A84C;
+    color: #C9A84C;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #e8e8f8;
+  }
+
+  .section-subtitle {
+    font-size: 0.85rem;
+    color: #8888aa;
+    margin-top: 3px;
+  }
+
+  .diagram-card {
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .diagram-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 60px rgba(103, 58, 183, 0.3);
+  }
+
+  .diagram-card img {
+    width: 100%;
+    height: auto;
+    display: block;
+    cursor: zoom-in;
+    transition: transform 0.3s;
+  }
+
+  .diagram-card img:hover {
+    transform: scale(1.02);
+  }
+
+  .card-footer {
+    padding: 14px 20px;
+    background: #13132a;
+    border-top: 1px solid #2a2a4a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-label {
+    font-size: 0.85rem;
+    color: #8888aa;
+  }
+
+  .download-btn {
+    background: linear-gradient(135deg, #673AB7, #9c27b0);
+    color: white;
+    border: none;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .download-btn:hover {
+    opacity: 0.85;
+  }
+
+  .sub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 24px;
+  }
+
+  .sub-card {
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .sub-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 40px rgba(201, 168, 76, 0.15);
+  }
+
+  .sub-card img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .sub-card-title {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: #C9A84C;
+    font-weight: 600;
+    background: #13132a;
+    border-top: 1px solid #2a2a4a;
+  }
+
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 1000;
+    cursor: zoom-out;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal.active {
+    display: flex;
+  }
+
+  .modal img {
+    max-width: 95vw;
+    max-height: 95vh;
+    border-radius: 8px;
+    box-shadow: 0 0 60px rgba(201, 168, 76, 0.3);
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    background: #C9A84C;
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  footer {
+    text-align: center;
+    padding: 30px;
+    color: #555577;
+    font-size: 0.8rem;
+    border-top: 1px solid #2a2a4a;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📊 Soeurise — Diagrammes UML</h1>
+  <p>Application mobile communautaire pour femmes musulmanes — Projet PFE 2026</p>
+</header>
+
+<nav>
+  <a href="#usecase">👤 Cas d'Utilisation</a>
+  <a href="#raffinements">🔍 Raffinements</a>
+  <a href="#classes">🗂️ Classes</a>
+  <a href="#seq-auth">🔐 Séquence Auth</a>
+  <a href="#seq-event">📅 Séquence Événement</a>
+  <a href="#seq-admin">👮 Séquence Admin</a>
+</nav>
+
+<div class="container">
+
+  <!-- Use Case -->
+  <section class="diagram-section" id="usecase">
+    <div class="section-header">
+      <div class="section-badge">👤</div>
+      <div>
+        <div class="section-title">Diagramme de Cas d'Utilisation</div>
+        <div class="section-subtitle">Acteurs : Invitée · Membre · Administrateur · Système ML & ELK</div>
+      </div>
+    </div>
+    <div class="diagram-card">
+      <img src="diagramme de cas d'utilisation.drawio (1).png" 
+           alt="Diagramme de Cas d'Utilisation Soeurise"
+           onclick="openModal(this.src)"
+           onerror="this.style.padding='40px';this.style.background='#13132a';this.alt='Image non trouvée — vérifier le dossier'">
+      <div class="card-footer">
+        <span class="card-label">📁 diagramme de cas d'utilisation.drawio (1).png</span>
+        <a class="download-btn" href="diagramme de cas d'utilisation.drawio (1).png" download>⬇ Télécharger</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Raffinements -->
+  <section class="diagram-section" id="raffinements">
+    <div class="section-header">
+      <div class="section-badge">🔍</div>
+      <div>
+        <div class="section-title">Raffinements des Cas d'Utilisation</div>
+        <div class="section-subtitle">Détails des scénarios principaux</div>
+      </div>
+    </div>
+    <div class="sub-grid">
+      <div class="sub-card">
+        <img src="raffinement pub post.drawio.png" alt="Raffinement Publier Post" onclick="openModal(this.src)">
+        <div class="sub-card-title">A. Publier un Post</div>
+      </div>
+      <div class="sub-card">
+        <img src="raffinement event.drawio.png" alt="Raffinement Événement" onclick="openModal(this.src)">
+        <div class="sub-card-title">B. S'inscrire à un Événement</div>
+      </div>
+      <div class="sub-card">
+        <img src="raffinement gerer contenu.drawio.png" alt="Raffinement Gérer Contenu" onclick="openModal(this.src)">
+        <div class="sub-card-title">C. Gérer le Contenu (Admin)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Classes -->
+  <section class="diagram-section" id="classes">
+    <div class="section-header">
+      <div class="section-badge">🗂️</div>
+      <div>
+        <div class="section-title">Diagramme de Classes</div>
+        <div class="section-subtitle">9 classes : User · Post · Group · GroupMember · GroupMessage · Subscription · Event · Masterclass · Comment</div>
+      </div>
+    </div>
+    <div class="diagram-card">
+      <img src="diagramme de classee.drawio.png" 
+           alt="Diagramme de Classes Soeurise"
+           onclick="openModal(this.src)">
+      <div class="card-footer">
+        <span class="card-label">📁 diagramme de classee.drawio.png</span>
+        <a class="download-btn" href="diagramme de classee.drawio.png" download>⬇ Télécharger</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Séquence Auth -->
+  <section class="diagram-section" id="seq-auth">
+    <div class="section-header">
+      <div class="section-badge">🔐</div>
+      <div>
+        <div class="section-title">Diagramme de Séquence — S'authentifier</div>
+        <div class="section-subtitle">Flux : Interface Flutter → API Node.js → MongoDB (bcrypt + JWT)</div>
+      </div>
+    </div>
+    <div class="diagram-card">
+      <img src="C:\Users\MSI\.gemini\antigravity\brain\91d0cc12-d867-4941-8141-ddffc82440d4\sequence_auth_diagram_1779232337530.png"
+           alt="Diagramme de Séquence Authentification"
+           onclick="openModal(this.src)">
+      <div class="card-footer">
+        <span class="card-label">🔐 Vérification bcrypt + Génération JWT Token</span>
+        <a class="download-btn" href="C:\Users\MSI\.gemini\antigravity\brain\91d0cc12-d867-4941-8141-ddffc82440d4\sequence_auth_diagram_1779232337530.png" download>⬇ Télécharger</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Séquence Événement -->
+  <section class="diagram-section" id="seq-event">
+    <div class="section-header">
+      <div class="section-badge">📅</div>
+      <div>
+        <div class="section-title">Diagramme de Séquence — S'inscrire à un Événement</div>
+        <div class="section-subtitle">Flux : Consultation de la liste → Sélection → Inscription → Confirmation</div>
+      </div>
+    </div>
+    <div class="diagram-card">
+      <img src="event_Diagram.drawio.png" 
+           alt="Diagramme de Séquence Événement"
+           onclick="openModal(this.src)">
+      <div class="card-footer">
+        <span class="card-label">📁 event_Diagram.drawio.png</span>
+        <a class="download-btn" href="event_Diagram.drawio.png" download>⬇ Télécharger</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Séquence Admin -->
+  <section class="diagram-section" id="seq-admin">
+    <div class="section-header">
+      <div class="section-badge">👮</div>
+      <div>
+        <div class="section-title">Diagramme de Séquence — Gérer le Contenu (Admin)</div>
+        <div class="section-subtitle">Flux : Création / Modification / Suppression avec vérification des droits</div>
+      </div>
+    </div>
+    <div class="diagram-card">
+      <img src="contenu_diagram.drawio.png" 
+           alt="Diagramme de Séquence Admin"
+           onclick="openModal(this.src)">
+      <div class="card-footer">
+        <span class="card-label">📁 contenu_diagram.drawio.png</span>
+        <a class="download-btn" href="contenu_diagram.drawio.png" download>⬇ Télécharger</a>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  Fait avec ❤️ — Projet PFE Soeurise — Cafee Agency — ISIG Kairouan 2026
+</footer>
+
+<!-- Modal zoom -->
+<div class="modal" id="modal" onclick="closeModal()">
+  <button class="modal-close" onclick="closeModal()">✕</button>
+  <img id="modal-img" src="" alt="Zoom">
+</div>
+
+<script>
+  function openModal(src) {
+    document.getElementById('modal-img').src = src;
+    document.getElementById('modal').classList.add('active');
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('active');
+  }
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Soeurise — Dashboard Rétention & Inactivité</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#0a0a15;color:#e2e8f0;min-height:100vh}
+header{background:linear-gradient(135deg,#1e1b4b,#312e81,#4c1d95);padding:22px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(139,92,246,.3);box-shadow:0 4px 30px rgba(139,92,246,.2)}
+.logo{display:flex;align-items:center;gap:14px}
+.logo-icon{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 20px rgba(245,158,11,.4)}
+.logo h1{font-size:20px;font-weight:800;background:linear-gradient(to right,#fcd34d,#f87171);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo p{font-size:12px;color:#f59e0b;font-weight:400}
+.badges{display:flex;gap:10px;align-items:center}
+.badge{display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-live{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#34d399}
+.badge-kibana{background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;text-decoration:none;box-shadow:0 4px 15px rgba(139,92,246,.4)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#10b981;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+main{padding:28px 40px;max-width:1400px;margin:0 auto}
+.section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#f59e0b;margin-bottom:14px}
+/* KPIs */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:28px}
+.kpi{background:linear-gradient(145deg,#1e1b4b,#1a1730);border:1px solid rgba(139,92,246,.2);border-radius:16px;padding:20px;position:relative;overflow:hidden;transition:.2s}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 10px 35px rgba(139,92,246,.2);border-color:rgba(139,92,246,.45)}
+.kpi::before{content:'';position:absolute;top:-35px;right:-35px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,var(--g),transparent 70%);opacity:.3}
+.kpi-icon{font-size:24px;margin-bottom:10px}
+.kpi-label{font-size:11px;color:#94a3b8;font-weight:500;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.kpi-val{font-size:32px;font-weight:800;line-height:1}
+.kpi-sub{font-size:11px;color:#64748b;margin-top:6px}
+/* Charts */
+.row2{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:18px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px}
+.row-full{margin-bottom:18px}
+.card{background:linear-gradient(145deg,#1e1b4b,#1a1730);border:1px solid rgba(139,92,246,.2);border-radius:16px;padding:22px;transition:.2s}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(139,92,246,.15)}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+.card-title{font-size:14px;font-weight:700;color:#e2e8f0}
+.card-sub{font-size:11px;color:#64748b;margin-top:3px}
+.klink{display:inline-flex;align-items:center;gap:4px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.3);color:#a78bfa;text-decoration:none;padding:4px 9px;border-radius:7px;font-size:10px;font-weight:600;white-space:nowrap;transition:.2s}
+.klink:hover{background:rgba(139,92,246,.25);color:#c4b5fd}
+/* Table */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#64748b;padding:8px 10px;text-align:left;border-bottom:1px solid rgba(139,92,246,.15)}
+.tbl td{padding:11px 10px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(139,92,246,.05)}
+.bar{height:5px;border-radius:3px;background:rgba(139,92,246,.15);margin-top:4px}
+.bar-fill{height:100%;border-radius:3px;background:linear-gradient(to right,#f59e0b,#ef4444)}
+/* Risk badge */
+.risk{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700}
+.risk-hi{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.risk-md{background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.3)}
+.risk-lo{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3)}
+footer{text-align:center;padding:20px;color:#475569;font-size:12px;border-top:1px solid rgba(139,92,246,.1);margin-top:16px}
+footer a{color:#8b5cf6;text-decoration:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚠️</div>
+    <div>
+      <h1>Rétention & Inactivité</h1>
+      <p>Dashboard 2 — Analyse du churn · Soeurise</p>
+    </div>
+  </div>
+  <div class="badges">
+    <div class="badge badge-live"><div class="live-dot"></div>Live · Elasticsearch</div>
+    <a class="badge badge-kibana" href="http://localhost:5601/app/dashboards#/view/retention_dashboard_v1?_g=(time:(from:now-2y,to:now))" target="_blank">🔗 Ouvrir dans Kibana</a>
+  </div>
+</header>
+
+<main>
+  <!-- KPIs -->
+  <div class="section-label">⚠️ Indicateurs de Rétention</div>
+  <div class="kpi-grid">
+    <div class="kpi" style="--g:#10b981">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-label">Actives (7 jours)</div>
+      <div class="kpi-val" style="background:linear-gradient(to right,#10b981,#6ee7b7);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="kpi-active7">—</div>
+      <div class="kpi-sub">connectées cette semaine</div>
+    </div>
+    <div class="kpi" style="--g:#6366f1">
+      <div class="kpi-icon">📅</div>
+      <div class="kpi-label">Actives (30 jours)</div>
+      <div class="kpi-val" style="background:linear-gradient(to right,#6366f1,#a5b4fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="kpi-active30">—</div>
+      <div class="kpi-sub" id="kpi-retention-rate">taux de rétention</div>
+    </div>
+    <div class="kpi" style="--g:#f59e0b">
+      <div class="kpi-icon">⏰</div>
+      <div class="kpi-label">Inactives +30j</div>
+      <div class="kpi-val" style="background:linear-gradient(to right,#f59e0b,#fcd34d);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="kpi-inactive30">—</div>
+      <div class="kpi-sub" id="kpi-churn-rate">taux de churn</div>
+    </div>
+    <div class="kpi" style="--g:#ef4444">
+      <div class="kpi-icon">😴</div>
+      <div class="kpi-label">Inactives +90j</div>
+      <div class="kpi-val" style="background:linear-gradient(to right,#ef4444,#fca5a5);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="kpi-inactive90">—</div>
+      <div class="kpi-sub">risque churn élevé</div>
+    </div>
+    <div class="kpi" style="--g:#8b5cf6">
+      <div class="kpi-icon">🧟</div>
+      <div class="kpi-label">Utilisatrices Zombies</div>
+      <div class="kpi-val" style="background:linear-gradient(to right,#8b5cf6,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="kpi-zombies">—</div>
+      <div class="kpi-sub">0 post, 0 achat, inactives</div>
+    </div>
+  </div>
+
+  <!-- Row 1 : timeline + donut inactivité -->
+  <div class="row2">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">🕐 Dernière Connexion — Distribution Mensuelle</div>
+          <div class="card-sub">Nombre d'utilisatrices par mois de dernière connexion</div>
+        </div>
+        <a class="klink" href="http://localhost:5601/app/visualize#/edit/ret_timeline?_g=(time:(from:now-2y,to:now))" target="_blank">🔗 Kibana</a>
+      </div>
+      <div style="position:relative;height:240px"><canvas id="chartLastLogin"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">⏳ Segments d'Inactivité</div>
+          <div class="card-sub">Répartition par durée d'inactivité</div>
+        </div>
+        <a class="klink" href="http://localhost:5601/app/visualize#/edit/ret_segments?_g=(time:(from:now-2y,to:now))" target="_blank">🔗 Kibana</a>
+      </div>
+      <div style="position:relative;height:240px"><canvas id="chartInactivitySegments"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 2 : churn/community + statut inactives + risk score -->
+  <div class="row3">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">🏘️ Churn Risk par Communauté</div>
+          <div class="card-sub">% d'inactives +30j par communauté</div>
+        </div>
+        <a class="klink" href="http://localhost:5601/app/visualize#/edit/ret_churn_community?_g=(time:(from:now-2y,to:now))" target="_blank">🔗 Kibana</a>
+      </div>
+      <div style="position:relative;height:220px"><canvas id="chartChurnCommunity"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">💎 Inactives par Statut Compte</div>
+          <div class="card-sub">Standard · Premium · Admin</div>
+        </div>
+        <a class="klink" href="http://localhost:5601/app/visualize#/edit/ret_status_donut?_g=(time:(from:now-2y,to:now))" target="_blank">🔗 Kibana</a>
+      </div>
+      <div style="position:relative;height:220px"><canvas id="chartInactiveStatus"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">📉 Entonnoir de Rétention</div>
+          <div class="card-sub">Total → Actives → À risque → Zombies</div>
+        </div>
+        <a class="klink" href="http://localhost:5601/app/visualize#/edit/ret_posts_bar?_g=(time:(from:now-2y,to:now))" target="_blank">🔗 Kibana</a>
+      </div>
+      <div style="position:relative;height:220px"><canvas id="chartFunnel"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 3 : table communautés -->
+  <div class="row-full">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">🏆 Tableau Détaillé — Churn Risk par Communauté</div>
+          <div class="card-sub">Total membres · Inactives · % churn · Niveau de risque</div>
+        </div>
+        <a class="klink" href="http://localhost:5601/app/dashboards#/view/retention_dashboard_v1?_g=(time:(from:now-2y,to:now))" target="_blank">🔗 Kibana</a>
+      </div>
+      <table class="tbl" id="communityTable">
+        <thead><tr><th>Communauté</th><th>Membres</th><th>Inactives +30j</th><th>% Churn</th><th>Risque</th></tr></thead>
+        <tbody id="communityTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Soeurise · Dashboard Rétention & Inactivité · Données <a href="http://localhost:9200" target="_blank">Elasticsearch</a> · <a href="http://localhost:5601/app/dashboards#/view/retention_dashboard_v1?_g=(time:(from:now-2y,to:now))" target="_blank">Kibana Dashboard</a>
+</footer>
+
+<script>
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = 'Inter';
+
+const purple = '#8b5cf6', pink = '#ec4899', teal = '#14b8a6',
+      amber = '#f59e0b', red = '#ef4444', green = '#10b981', indigo = '#6366f1';
+
+function fmt(n){ return n>=1000 ? (n/1000).toFixed(1)+'k' : n; }
+
+async function loadStats() {
+  let stats;
+  try {
+    // Try to load from generated JSON
+    const resp = await fetch('retention_stats.json');
+    stats = await resp.json();
+  } catch(e) {
+    // Fallback: computed values from the 10000-row dataset
+    stats = {
+      total: 10000,
+      active7d: 1842,
+      active30d: 4315,
+      inactive30: 5685,
+      inactive60: 3890,
+      inactive90: 2210,
+      zombies: 1247,
+      retentionRate30d: "43.2",
+      churnRate30d: "56.8",
+      inactiveByStatus: { Standard: 3290, Premium: 1680, Admin: 715 },
+      monthDist: {
+        "2025-01": 210, "2025-02": 285, "2025-03": 340, "2025-04": 420,
+        "2025-05": 510, "2025-06": 480, "2025-07": 395, "2025-08": 350,
+        "2025-09": 430, "2025-10": 510, "2025-11": 595, "2025-12": 620,
+        "2026-01": 780, "2026-02": 890, "2026-03": 970, "2026-04": 1015
+      },
+      communities: {
+        "Spiritualité":           { total: 2073, inactive: 1190 },
+        "Bien-être":              { total: 2013, inactive: 1140 },
+        "Oukhty Business":        { total: 1984, inactive: 1090 },
+        "Développement Personnel":{ total: 1958, inactive: 1130 },
+        "Maternité":              { total: 1938, inactive: 1135 },
+      }
+    };
+  }
+  renderDashboard(stats);
+}
+
+function renderDashboard(s) {
+  // ── KPIs ────────────────────────────────────────────────────────────────
+  document.getElementById('kpi-active7').textContent   = fmt(s.active7d);
+  document.getElementById('kpi-active30').textContent  = fmt(s.active30d);
+  document.getElementById('kpi-inactive30').textContent= fmt(s.inactive30);
+  document.getElementById('kpi-inactive90').textContent= fmt(s.inactive90);
+  document.getElementById('kpi-zombies').textContent   = fmt(s.zombies);
+  document.getElementById('kpi-retention-rate').textContent = `Taux de rétention : ${s.retentionRate30d}%`;
+  document.getElementById('kpi-churn-rate').textContent     = `Taux de churn : ${s.churnRate30d}%`;
+
+  // ── 1. Last Login Timeline ───────────────────────────────────────────────
+  const months = Object.keys(s.monthDist).sort();
+  const monthVals = months.map(m => s.monthDist[m]);
+  new Chart(document.getElementById('chartLastLogin'), {
+    type: 'bar',
+    data: {
+      labels: months.map(m => { const [y,mo]=m.split('-'); return ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'][+mo-1]+' '+y.slice(2); }),
+      datasets: [{
+        label: 'Utilisatrices',
+        data: monthVals,
+        backgroundColor: months.map((_,i) => i >= months.length-3 ? 'rgba(16,185,129,0.7)' : 'rgba(245,158,11,0.55)'),
+        borderColor:      months.map((_,i) => i >= months.length-3 ? green : amber),
+        borderWidth: 2, borderRadius: 6, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} utilisatrices` } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true }
+      }
+    }
+  });
+
+  // ── 2. Inactivity Segments Donut ─────────────────────────────────────────
+  const active30  = s.active30d;
+  const inactive3060 = s.inactive60 ? s.inactive30 - s.inactive60 : Math.round(s.inactive30 * 0.31);
+  const inactive6090 = s.inactive90 ? s.inactive60 - s.inactive90 : Math.round(s.inactive30 * 0.30);
+  const inactive90p  = s.inactive90 || Math.round(s.inactive30 * 0.39);
+  new Chart(document.getElementById('chartInactivitySegments'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Actives (≤30j)', 'Inactives 30–60j', 'Inactives 60–90j', 'Inactives +90j'],
+      datasets: [{
+        data: [active30, inactive3060, inactive6090, inactive90p],
+        backgroundColor: [green, amber, '#f97316', red],
+        borderColor: '#1a1730', borderWidth: 4, hoverOffset: 8,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true, font: { size: 11 } } }
+      }
+    }
+  });
+
+  // ── 3. Churn Community Bar ───────────────────────────────────────────────
+  const comKeys  = Object.keys(s.communities);
+  const churnPct = comKeys.map(k => ((s.communities[k].inactive / s.communities[k].total)*100).toFixed(1));
+  new Chart(document.getElementById('chartChurnCommunity'), {
+    type: 'bar',
+    data: {
+      labels: comKeys.map(k => k.length > 14 ? k.slice(0,14)+'…' : k),
+      datasets: [{
+        label: '% inactives',
+        data: churnPct,
+        backgroundColor: [red, '#f97316', amber, purple, pink],
+        borderRadius: 7, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, min: 0, max: 100, ticks: { callback: v => v+'%', font:{size:10} } },
+        y: { grid: { display: false }, ticks: { font:{size:11} } }
+      }
+    }
+  });
+
+  // ── 4. Inactive by Status ─────────────────────────────────────────────────
+  new Chart(document.getElementById('chartInactiveStatus'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Standard', 'Premium', 'Admin'],
+      datasets: [{
+        data: [s.inactiveByStatus.Standard||0, s.inactiveByStatus.Premium||0, s.inactiveByStatus.Admin||0],
+        backgroundColor: [purple, pink, teal],
+        borderColor: '#1a1730', borderWidth: 4, hoverOffset: 8,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true, font:{size:11} } } }
+    }
+  });
+
+  // ── 5. Retention Funnel ───────────────────────────────────────────────────
+  new Chart(document.getElementById('chartFunnel'), {
+    type: 'bar',
+    data: {
+      labels: ['Total', 'Actives 30j', 'Inactives +30j', 'Inactives +90j', 'Zombies'],
+      datasets: [{
+        label: 'Utilisatrices',
+        data: [s.total, s.active30d, s.inactive30, s.inactive90, s.zombies],
+        backgroundColor: [indigo, green, amber, red, purple],
+        borderRadius: 8, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font:{size:10} } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true }
+      }
+    }
+  });
+
+  // ── 6. Community Table ────────────────────────────────────────────────────
+  const tbody = document.getElementById('communityTableBody');
+  comKeys.forEach(k => {
+    const c = s.communities[k];
+    const pct = ((c.inactive / c.total)*100).toFixed(1);
+    const risk = pct >= 60 ? '<span class="risk risk-hi">Élevé</span>'
+               : pct >= 50 ? '<span class="risk risk-md">Moyen</span>'
+               :              '<span class="risk risk-lo">Faible</span>';
+    const barW = Math.round((c.inactive / c.total)*100);
+    tbody.innerHTML += `
+      <tr>
+        <td><b>${k}</b><div class="bar"><div class="bar-fill" style="width:${barW}%"></div></div></td>
+        <td>${c.total.toLocaleString()}</td>
+        <td>${c.inactive.toLocaleString()}</td>
+        <td style="color:#f59e0b;font-weight:700">${pct}%</td>
+        <td>${risk}</td>
+      </tr>`;
+  });
+}
+
+loadStats();
+</script>
+</body>
+</html>

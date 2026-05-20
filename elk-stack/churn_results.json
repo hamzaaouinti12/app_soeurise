@@ -1,0 +1,174 @@
+{
+  "model_accuracy": 99.5,
+  "model_auc": 1.0,
+  "cv_score": 99.73,
+  "total_users": 10000,
+  "churn_critique": 6052,
+  "churn_eleve": 51,
+  "churn_moyen": 17,
+  "churn_faible": 3880,
+  "churn_total_predicted": 6103,
+  "stable_total": 3897,
+  "avg_churn_score": 0.6107,
+  "feature_importance": [
+    {
+      "feature": "score_social",
+      "importance": 0.20723081756969372
+    },
+    {
+      "feature": "nombre_posts",
+      "importance": 0.20256584520300305
+    },
+    {
+      "feature": "total_likes_recus",
+      "importance": 0.17091880600373574
+    },
+    {
+      "feature": "likes_par_post",
+      "importance": 0.12867380937729517
+    },
+    {
+      "feature": "commentaires_par_post",
+      "importance": 0.11663897466194847
+    },
+    {
+      "feature": "total_commentaires_recus",
+      "importance": 0.06357838940484895
+    },
+    {
+      "feature": "score_engagement_global",
+      "importance": 0.041774385656310954
+    },
+    {
+      "feature": "total_reposts_recus",
+      "importance": 0.03840015590648597
+    },
+    {
+      "feature": "masterclass_achetees",
+      "importance": 0.01343259600598675
+    },
+    {
+      "feature": "taux_engagement",
+      "importance": 0.010947971030460494
+    }
+  ],
+  "risk_by_community": {
+    "Bien-être": 0.6078,
+    "Cuisine & Partage": 0.2555,
+    "Développement Personnel": 0.6414,
+    "Maternité": 0.6162,
+    "Oukhty Business": 0.6067,
+    "Spiritualité": 0.5888,
+    "Éducation": 0.2723
+  },
+  "risk_by_status": {
+    "Admin": 0.5986,
+    "Premium": 0.6149,
+    "Standard": 0.6115
+  },
+  "confusion_matrix": [
+    [
+      776,
+      0
+    ],
+    [
+      10,
+      1214
+    ]
+  ],
+  "generated_at": "2026-05-15T00:09:48.492133",
+  "top_at_risk": [
+    {
+      "prenom": "Raymonde Clement",
+      "email": "raymonde_clement45@gmail.com",
+      "churn_score": 1.0,
+      "jours_inactif": 42,
+      "churn_reason": "Inactive +30j · Aucun post",
+      "communaute_active": "Développement Personnel"
+    },
+    {
+      "prenom": "Virginie Perrin",
+      "email": "virginie.perrin72@gmail.com",
+      "churn_score": 1.0,
+      "jours_inactif": 150,
+      "churn_reason": "Inactive +60j · Aucun post",
+      "communaute_active": "Maternité"
+    },
+    {
+      "prenom": "Adrehilde Nicolas",
+      "email": "adrehilde.nicolas81@gmail.com",
+      "churn_score": 1.0,
+      "jours_inactif": 34,
+      "churn_reason": "Inactive +30j · Aucun post",
+      "communaute_active": "Développement Personnel"
+    },
+    {
+      "prenom": "Paule Dupuy",
+      "email": "paule.dupuy69@gmail.com",
+      "churn_score": 1.0,
+      "jours_inactif": 73,
+      "churn_reason": "Inactive +60j · Aucun post",
+      "communaute_active": "Développement Personnel"
+    },
+    {
+      "prenom": "Angilberte Gonzalez",
+      "email": "angilberte_gonzalez@gmail.com",
+      "churn_score": 1.0,
+      "jours_inactif": 204,
+      "churn_reason": "Inactive +60j · Aucun post",
+      "communaute_active": "Maternité"
+    },
+    {
+      "prenom": "Aubertine Chevalier",
+      "email": "aubertine_chevalier@gmail.com",
+      "churn_score": 1.0,
+      "jours_inactif": 78,
+      "churn_reason": "Inactive +60j · Aucun post",
+      "communaute_active": "Spiritualité"
+    },
+    {
+      "prenom": "Olympe Laurent",
+      "email": "olympe_laurent42@gmail.com",
+      "churn_score": 1.0,
+      "jours_inactif": 289,
+      "churn_reason": "Inactive +60j · Aucun post",
+      "communaute_active": "Bien-être"
+    },
+    {
+      "prenom": "Mauricette Colin",
+      "email": "mauricette.colin@gmail.com",
+      "churn_score": 1.0,
+      "jours_inactif": 339,
+      "churn_reason": "Inactive +60j · Aucun post",
+      "communaute_active": "Spiritualité"
+    },
+    {
+      "prenom": "Viviane Moreau",
+      "email": "viviane.moreau73@gmail.com",
+      "churn_score": 1.0,
+      "jours_inactif": 274,
+      "churn_reason": "Inactive +60j · Aucun post",
+      "communaute_active": "Spiritualité"
+    },
+    {
+      "prenom": "Avoye Adam",
+      "email": "avoye.adam45@gmail.com",
+      "churn_score": 1.0,
+      "jours_inactif": 17,
+      "churn_reason": "Aucun post · Aucune interaction",
+      "communaute_active": "Développement Personnel"
+    }
+  ],
+  "score_distribution": {
+    "0-10%": 3836,
+    "10-20%": 38,
+    "20-30%": 9,
+    "30-40%": 8,
+    "40-50%": 6,
+    "50-60%": 15,
+    "60-70%": 18,
+    "70-80%": 52,
+    "80-90%": 55,
+    "90-100%": 1349
+  }
+}

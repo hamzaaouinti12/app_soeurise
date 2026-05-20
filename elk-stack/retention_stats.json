@@ -1,0 +1,64 @@
+{
+  "total": 10000,
+  "active7d": 0,
+  "active30d": 1263,
+  "inactive30": 8737,
+  "inactive60": 6942,
+  "inactive90": 5561,
+  "zombies": 462,
+  "communities": {
+    "Oukhty Business": {
+      "total": 1984,
+      "inactive": 1743
+    },
+    "Spiritualité": {
+      "total": 2073,
+      "inactive": 1817
+    },
+    "Éducation": {
+      "total": 18,
+      "inactive": 18
+    },
+    "Maternité": {
+      "total": 1938,
+      "inactive": 1690
+    },
+    "Bien-être": {
+      "total": 2013,
+      "inactive": 1730
+    },
+    "Cuisine & Partage": {
+      "total": 16,
+      "inactive": 16
+    },
+    "Développement Personnel": {
+      "total": 1958,
+      "inactive": 1723
+    }
+  },
+  "monthDist": {
+    "2026-01": 998,
+    "2026-02": 1218,
+    "2026-03": 1585,
+    "2026-04": 2134,
+    "2025-12": 820,
+    "2025-10": 592,
+    "2025-11": 654,
+    "2025-07": 352,
+    "2025-06": 254,
+    "2025-08": 394,
+    "2025-05": 207,
+    "2025-04": 153,
+    "2025-09": 457,
+    "2025-03": 118,
+    "2025-02": 45,
+    "2025-01": 19
+  },
+  "inactiveByStatus": {
+    "Standard": 5014,
+    "Premium": 2542,
+    "Admin": 1181
+  },
+  "retentionRate30d": "12.6",
+  "churnRate30d": "87.4"
+}
