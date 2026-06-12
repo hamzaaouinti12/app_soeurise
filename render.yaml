@@ -1,0 +1,34 @@
+# ────────────────────────────────────────────────────────────────────────────────
+# render.yaml — Infrastructure as Code pour Render.com
+# Déploie automatiquement le backend Soeurise (Node.js + Express + MongoDB)
+# ────────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── Backend API (Node.js / Express) ──────────────────────────────────────────
+  - type: web
+    name: soeurise-backend
+    runtime: node
+    rootDir: soeurise-backend
+    buildCommand: npm install
+    startCommand: node src/server.js
+    healthCheckPath: /health
+    plan: free                       # Plan gratuit Render
+    autoDeploy: true                 # Redéploiement automatique sur push Git
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000                 # Render impose le port 10000 en interne
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      # ⚠️  Ces variables DOIVENT être définies dans le Dashboard Render :
+      #     - MONGO_URI   → votre URI MongoDB Atlas (mongodb+srv://...)
+      #     - JWT_SECRET  → une clé secrète forte (au moins 32 caractères)
+      #     - CORS_ORIGIN → URL de votre frontend (ex: https://soeurise.onrender.com)
+      - key: MONGO_URI
+        sync: false                  # Sera saisi manuellement dans le Dashboard
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        value: "*"                   # À restreindre après déploiement frontend
