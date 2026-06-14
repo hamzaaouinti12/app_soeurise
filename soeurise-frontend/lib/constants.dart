@@ -175,9 +175,9 @@ class AppDurations {
 
 // ─── API Configuration ───
 class ApiConfig {
-  // For web: localhost:4000, for Android emulator: 10.0.2.2:4000
-  static const String baseUrl = 'http://localhost:4000/api';
-  static const String serverUrl = 'http://localhost:4000';
+  // 🚀 Production API — Render.com
+  static const String baseUrl = 'https://soeurise-api.onrender.com/api';
+  static const String serverUrl = 'https://soeurise-api.onrender.com';
   static const String wpApiUrl = 'https://example.com/wp-json';
 
   /// Converts a relative upload path (e.g. /uploads/avatars/img.png) to a full URL.
