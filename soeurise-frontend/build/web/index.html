@@ -18,21 +18,132 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Soeurise - Communauté des Femmes Musulmanes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="soeurise">
+  <meta name="apple-mobile-web-app-title" content="Soeurise">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>soeurise</title>
+  <title>Soeurise</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: linear-gradient(135deg, #FFF5EB 0%, #FFF0E8 50%, #FFF8F2 100%);
+      font-family: 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #flutter-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    #flutter-loading .logo-circle {
+      width: 90px;
+      height: 90px;
+      background: linear-gradient(135deg, #CD3D4B, #E36B78);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(205,61,75,0.3);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 8px 32px rgba(205,61,75,0.3); }
+      50%       { transform: scale(1.05); box-shadow: 0 12px 40px rgba(205,61,75,0.5); }
+    }
+
+    #flutter-loading .logo-letter {
+      color: white;
+      font-size: 40px;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+
+    #flutter-loading h1 {
+      color: #CD3D4B;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    #flutter-loading p {
+      color: #8B7070;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    .loading-bar {
+      width: 160px;
+      height: 4px;
+      background: #E8D5C0;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .loading-bar-fill {
+      height: 100%;
+      width: 40%;
+      background: linear-gradient(90deg, #CD3D4B, #E36B78);
+      border-radius: 2px;
+      animation: shimmer 1.5s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(350%); }
+    }
+  </style>
 </head>
 <body>
+
+  <!-- Loading screen shown while Flutter initializes -->
+  <div id="flutter-loading">
+    <div class="logo-circle">
+      <span class="logo-letter">S</span>
+    </div>
+    <h1>Soeurise</h1>
+    <p>Communauté des Femmes Musulmanes</p>
+    <div class="loading-bar">
+      <div class="loading-bar-fill"></div>
+    </div>
+  </div>
+
+  <script>
+    // Hide loading screen once Flutter takes over
+    window.addEventListener('flutter-first-frame', function() {
+      var loader = document.getElementById('flutter-loading');
+      if (loader) {
+        loader.style.transition = 'opacity 0.5s ease';
+        loader.style.opacity = '0';
+        setTimeout(function() { loader.remove(); }, 500);
+      }
+    });
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
