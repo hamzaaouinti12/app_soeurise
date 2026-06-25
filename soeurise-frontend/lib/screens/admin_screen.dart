@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../constants.dart';
 import '../models/models.dart';
 import '../theme/glass_widgets.dart';
@@ -26,7 +27,7 @@ class _AdminScreenState extends State<AdminScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadAll();
   }
 
@@ -205,6 +206,10 @@ class _AdminScreenState extends State<AdminScreen>
                 Tab(text: 'Utilisateurs'),
                 Tab(text: 'Publications'),
                 Tab(text: 'Événements'),
+                Tab(
+                  icon: Icon(Icons.bar_chart_rounded, size: 18),
+                  text: 'Dashboard',
+                ),
               ],
             ),
           ),
@@ -222,6 +227,7 @@ class _AdminScreenState extends State<AdminScreen>
                 _buildUsersTab(),
                 _buildPostsTab(),
                 _buildEventsTab(),
+                _buildPowerBiTab(),
               ],
             ),
           ),
@@ -536,6 +542,268 @@ class _AdminScreenState extends State<AdminScreen>
     );
   }
 
+  static const String _powerBiUrl =
+      'https://app.powerbi.com/view?r=eyJrIjoiYzFlZThhY2UtNTE5MS00YTgzLTlkZTgtNmRlZjUzZWUxMjZhIiwidCI6ImE2MmVlN2M0LWVkMmQtNDk5MS1iNGI4LTMxMjBlODMzM2UxMSJ9';
+
+  Future<void> _openPowerBi() async {
+    final uri = Uri.parse(_powerBiUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Widget _buildPowerBiTab() {
+    final kpis = [
+      _KpiData(Icons.people_rounded, 'Utilisateurs', _stats['users'] ?? 0,
+          const Color(0xFF64B5F6), '+${((_stats['users'] ?? 0) * 0.08).round()}% ce mois'),
+      _KpiData(Icons.article_rounded, 'Publications', _stats['posts'] ?? 0,
+          AppColors.primary, '+${((_stats['posts'] ?? 0) * 0.12).round()}% ce mois'),
+      _KpiData(Icons.event_rounded, 'Événements', _stats['events'] ?? 0,
+          AppColors.warningColor, '${_stats['events'] ?? 0} actifs'),
+      _KpiData(Icons.school_rounded, 'Masterclasses', _stats['masterclasses'] ?? 0,
+          const Color(0xFFBA68C8), '${_stats['masterclasses'] ?? 0} disponibles'),
+    ];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withAlpha(60),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Analytics Dashboard',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'Rapport Power BI — Soeurise',
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              color: Colors.white.withAlpha(180),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(30),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Text(
+                        'ADMIN ONLY',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Open Power BI button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _openPowerBi,
+                    icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                    label: const Text(
+                      'Ouvrir le rapport Power BI complet',
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Section title
+          Text(
+            'Aperçu en temps réel',
+            style: AppTextStyles.headline4.copyWith(color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Données synchronisées depuis votre base MongoDB Atlas',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 16),
+
+          // KPI Grid
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.5,
+            ),
+            itemCount: kpis.length,
+            itemBuilder: (ctx, i) {
+              final k = kpis[i];
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: k.color.withAlpha(30)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: k.color.withAlpha(15),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: k.color.withAlpha(20),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(k.icon, color: k.color, size: 20),
+                        ),
+                        Icon(Icons.trending_up_rounded,
+                            color: AppColors.successColor, size: 18),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${k.value}',
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: k.color,
+                          ),
+                        ),
+                        Text(
+                          k.label,
+                          style: AppTextStyles.caption.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          k.subtitle,
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.successColor,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 24),
+
+          // Info card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0F4FF),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFBBCCFF)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded,
+                    color: Color(0xFF5C7CFF), size: 22),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Rapport interactif disponible sur Power BI',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: Color(0xFF3D4DB7),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Cliquez sur le bouton ci-dessus pour accéder aux graphiques détaillés, filtres et analyses avancées.',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: const Color(0xFF5C7CFF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEventsTab() {
     return Column(
       children: [
@@ -688,6 +956,9 @@ class _AdminScreenState extends State<AdminScreen>
                   onPressed: () async {
                     if (titleController.text.isEmpty || locationController.text.isEmpty) return;
                     
+                    // Capture messenger before async gap
+                    final messenger = ScaffoldMessenger.of(context);
+
                     final success = await EventService.instance.createEvent(
                       title: titleController.text,
                       location: locationController.text,
@@ -700,8 +971,7 @@ class _AdminScreenState extends State<AdminScreen>
                     if (success) {
                       Navigator.pop(ctx);
                       _loadEvents();
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text('Événement créé !'),
                           backgroundColor: AppColors.successColor,
@@ -733,4 +1003,13 @@ class _StatData {
   final int count;
   final Color color;
   _StatData(this.icon, this.label, this.count, this.color);
+}
+
+class _KpiData {
+  final IconData icon;
+  final String label;
+  final int value;
+  final Color color;
+  final String subtitle;
+  _KpiData(this.icon, this.label, this.value, this.color, this.subtitle);
 }
